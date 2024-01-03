@@ -1,0 +1,9 @@
+build*/
+fast_acos_t
+*.db
+*.tsv
+.Rhistory
+.Rproj.user/
+*_files/
+*.html
+*.pdf

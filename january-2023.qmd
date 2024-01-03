@@ -1,0 +1,76 @@
+---
+title: "Investigating PDFastSimPAR"
+author: "Marc Paterno"
+institute: "Fermi National Accelerator Laboratory"
+date: last-modified
+date-format: long
+format:
+  html:
+    theme: plain
+  beamer:
+    theme: MFP
+    pdf-engine: xelatex
+    mainfont: Geneva
+    aspectratio: 169
+---
+
+```{r, setup, include=FALSE}
+library(tidyverse)
+```
+
+## `phot::fast_acos`
+
+* Implementation from *Handbook of Mathematical Functions*, M. Abramowitz and I.A. Stegun, Ed.
+
+## `phot::fast_acos` shape of the curve
+
+```{r, include=FALSE}
+x <- read_tsv("acos.tsv")
+x <- mutate(x,
+            diff = std-fast,
+            fracdiff = abs(diff)/std)
+```
+
+```{r, echo=FALSE}
+#| fig-height: 4.5
+ggplot(x) +
+  #geom_point(mapping=aes(x, std), color = "magenta") +
+  geom_point(mapping=aes(x, fast), color = "cyan") +
+  labs(x="x", y="fast_acos")
+```
+
+## `phot::fast_acos` shape: zoomed in near x=0.5
+
+```{r, echo=FALSE}
+#| fig-height: 4.5
+filter(x, x>0.4995, x< 0.5005) |>
+  ggplot() +
+    geom_point(mapping=aes(x, std), color = "magenta") +
+    geom_point(mapping=aes(x, fast), color = "cyan") +
+    geom_line(mapping=aes(x, stdf), color = "red") +
+    geom_line(mapping=aes(x, hastings), color = "green") +
+    labs(x="x",
+         y="cyan: fast_acos\nmagenta: std::acos(double)\nred line:std::acos(float)")
+```
+
+## `phot::fast_acos` difference from C library
+
+```{r, echo = FALSE}
+#| fig-height: 4.5
+ggplot(x, aes(x, diff)) +
+  geom_point(size=0.1) +
+  labs(x="x", y = "std::acos(float) - fast_acos")
+```
+
+## `phot::fast_acos` relative difference from C library
+
+```{r, echo=FALSE}
+#| fig-height: 4.5
+ggplot(x, aes(x, fracdiff)) +
+  geom_point(size=0.1) +
+  labs(x="x", y="|fractional difference|")
+```
+
+## `phot::fast_acos` vs. `hastings_acos`
+
+Something here later.

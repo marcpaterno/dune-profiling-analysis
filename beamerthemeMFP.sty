@@ -1,0 +1,177 @@
+% (c) 2016 Marc Paterno
+%
+% This file provides a beamer-theme for my presentations.
+
+\ProvidesPackage{beamerthemeMFP}
+
+\usepackage{xspace}
+\usepackage{pgf}
+\usepackage{color}
+
+% Primary colors
+\definecolor{nalblue}{RGB}{0,76,151}
+\definecolor{nalbluelight}{RGB}{65,182,230}
+\definecolor{nalbluedark}{RGB}{0,40,85}
+
+% Secondardy colors
+\definecolor{marlinbluelight}{RGB}{153,214,234}
+\definecolor{marlinblue}{RGB}{0,181,226}
+\definecolor{marlinkbluedark}{RGB}{0,133,173}
+
+\definecolor{nalgreenlight}{RGB}{120,190,32}
+\definecolor{nalgreen}{RGB}{76,140,43}
+\definecolor{nalgreendark}{RGB}{54,87,59}
+
+\definecolor{masseyfergusonredlight}{RGB}{175,39,47}
+\definecolor{masseyfergusonred}{RGB}{138,42,43}
+\definecolor{masseyfergusonreddark}{RGB}{100,51,53}
+
+\definecolor{orangelight}{RGB}{246,141,46}
+\definecolor{orange}{RGB}{203,96,21}
+\definecolor{orangedark}{RGB}{185,71,0}
+
+\definecolor{prariegoldlight}{RGB}{245,225,164}
+\definecolor{prariegold}{RGB}{254,209,65}
+\definecolor{prariegolddark}{RGB}{234,170,0}
+
+\definecolor{gray45}{RGB}{167,168,170}
+\definecolor{gray75}{RGB}{99,102,106}
+\definecolor{richblack}{RGB}{0,0,0}
+
+\usepackage{tikz}
+\usepackage{mathptmx}
+\usepackage{helvet}
+\hypersetup{colorlinks,linkcolor=,urlcolor=orangedark}
+
+%----------------------------------------------------------------------
+
+%% for the presentation
+\mode<presentation>
+
+
+%----------------------------------------------------------------------
+% Page, margin, and aspect control.
+%----------------------------------------------------------------------
+\setbeamersize{text margin left=1 em,text margin right=1 em}
+
+%----------------------------------------------------------------------
+% Color theme
+%----------------------------------------------------------------------
+
+
+\setbeamercolor{frametitle}{fg = nalblue}
+\setbeamercolor{title}{fg = nalblue}
+\setbeamercolor{section in toc}{fg = nalblue}
+\setbeamercolor{section in toc shaded}{fg = nalblue}
+
+\setbeamercolor{item}{fg = richblack}
+\setbeamercolor{subitem}{fg = richblack}
+\setbeamercolor{subsubitem}{fg = richblack}
+
+\setbeamercolor{description item}{fg = richblack}
+\setbeamercolor{caption}{fg = richblack}
+\setbeamercolor{caption name}{fg = richblack}
+
+\setbeamercolor{block title}{fg = white, bg = nalbluedark}
+\setbeamercolor{block body}{bg = marlinbluelight}
+
+\setbeamercolor{block title alerted}{fg = white, bg = masseyfergusonreddark}
+\setbeamercolor{block body alerted}{fg = white, bg = masseyfergusonredlight}
+
+\setbeamercolor{block title example}{fg = white, bg = prariegolddark}
+\setbeamercolor{block body example}{bg = prariegoldlight}
+
+\setbeamercolor{normal text}{fg = richblack}
+\setbeamercolor{alerted text}{fg = masseyfergusonredlight}
+
+%----------------------------------------------------------------------
+% Font theme
+%----------------------------------------------------------------------
+\usefonttheme{default}
+%\usefonttheme{professionalfonts} % suppress Beamer replacements
+\usefonttheme{structurebold}
+\setbeamerfont{title}{size = \LARGE}
+\setbeamerfont{frametitle}{size = \large}
+\setbeamerfont*{footline}{size = \tiny}
+%\setbeamerfont{itemize/enumerate body}{size = \normalsize}
+\setbeamerfont{itemize/enumerate subbody}{size = \small}
+\setbeamerfont{enumerate item}{series = \mdseries}
+
+%----------------------------------------------------------------------
+% Inner theme
+% This controls things inside the body of a frame
+%----------------------------------------------------------------------
+\useinnertheme[shadow=true]{rounded}
+\setbeamertemplate{itemize items}[ball]
+\setbeamertemplate{enumerate items}[default] % just a number
+
+%\setbeamertemplate{sections/subsections in toc}[ball unnumbered]
+
+%----------------------------------------------------------------------
+% Outer theme
+% This controls things outside the body of a frame (e.g. title,
+% footers, ...)
+%----------------------------------------------------------------------
+
+% Set up the footer. We turn off the navigation symbols, because they clutter
+% the footer area.
+\beamertemplatenavigationsymbolsempty
+\setbeamertemplate{footline}{%
+\color{nalblue}
+\hfil \hspace{1 em}
+ \raisebox{0.45 em}{\color{marlinbluelight}\rule{0.8\textwidth}{0.5 em}}
+ %\hspace{1 em}
+ \includegraphics[width=.125\textwidth]{FNAL-Logo-NAL-Blue}
+ \hfil
+ \break
+ \vskip 0.5 em
+ \hspace{2.5 em}
+ \insertframenumber/\inserttotalframenumber
+ \hspace{3 em}
+ \insertshortdate
+ \hspace{3 em}
+ \insertshortauthor\,|\,\insertshorttitle
+ \hfil
+ \vskip 1.0 em
+}
+
+
+% Title page
+
+\setbeamertemplate{title page}{%
+  \setbeamertemplate{footline}{}
+\begin{tikzpicture}[remember picture,overlay]
+  % current page.north and anchor=north leaves a small amount of space above the ribbon.
+  % The yshift value needed to close the gap was determined experimentally.
+  \node[anchor=north] at ([yshift=0.0535 in]current page.north) {\includegraphics[width=\paperwidth]{title-graphic}};
+\end{tikzpicture}
+ 
+ \vskip 2in%
+ \vfill
+ %\begin{centering}
+ \usebeamercolor[fg]{title}
+ {\usebeamerfont{title}\inserttitle}\break
+ {\usebeamerfont{subtitle}\insertsubtitle}\break
+ \insertauthor\break
+ \textit{\insertdate}
+ %\vfill
+ %\end{centering}
+}
+
+% Part page
+\setbeamertemplate{part page}{%
+\setbeamertemplate{footline}{}
+\vfill
+\usebeamercolor[fg]{title}
+\usebeamerfont{title}\insertpart
+\vfill
+}
+
+\AtBeginPart{\frame{\partpage}}
+    
+%% %% Precise head and foot -lines
+
+\setbeamertemplate{headline}{\vskip1.5em}
+
+\mode
+<all>
