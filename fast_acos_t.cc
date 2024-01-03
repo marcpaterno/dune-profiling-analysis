@@ -22,8 +22,7 @@ double fast_acos(double x) {
   return negate * 3.14159265358979 + ret;
 }
 
-double hastings_acos(double xin) {
-  //double const x = std::abs(xin);
+double hastings_acos_obfuscated(double xin) {
   double x = xin;
   double term = 0.0;
   double factor = 1.0;
@@ -47,8 +46,25 @@ double hastings_acos(double xin) {
   ret += a0;
   ret *= std::sqrt(1.0-x);
   return factor * ret + term;
-  // if (xin >= 0) return ret;
-  // return M_PI - ret;
+}
+
+
+double hastings_acos(double xin) {
+  double const x = std::abs(xin);
+  double const a0 =  1.5707288;
+  double const a1 = -0.2121144;
+  double const a2 =  0.0742610;
+  double const a3 = -0.0187293;
+  double ret = a3;
+  ret *= x;
+  ret += a2;
+  ret *= x;
+  ret += a1;
+  ret *= x;
+  ret += a0;
+  ret *= std::sqrt(1.0-x);
+  if (xin >= 0) return ret;
+  return M_PI - ret;
 }
 
 
@@ -103,4 +119,5 @@ int main() {
     .minEpochIterations(50 * 1000 * 1000);
   run_bench(&fast_acos, &b, "fast_acos");
   run_bench(&hastings_acos, &b, "hastings_acos");
+  run_bench(&hastings_acos_obfuscated, &b, "hastings_acos_obfuscated");
 }
