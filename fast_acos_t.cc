@@ -6,7 +6,8 @@
 
 // This is from LArSim.
 
-double fast_acos(double x) {
+ __attribute__((noinline))
+ double fast_acos(double x) {
   double negate = double(x < 0.);
   x = std::abs(x);
   x -= double(x > 1.) * (x - 1.); // <- equivalent to min(1.,x), but faster
@@ -22,6 +23,7 @@ double fast_acos(double x) {
   return negate * 3.14159265358979 + ret;
 }
 
+__attribute__((noinline))
 double hastings_acos_obfuscated(double xin) {
   double x = xin;
   double term = 0.0;
@@ -49,6 +51,7 @@ double hastings_acos_obfuscated(double xin) {
 }
 
 
+__attribute__((noinline))
 double hastings_acos(double xin) {
   double const x = std::abs(xin);
   double const a0 =  1.5707288;
@@ -68,6 +71,7 @@ double hastings_acos(double xin) {
 }
 
 
+__attribute__((noinline))
 double hastings_asin(double x) {
   double const a0 =  1.5707963050;
   double const a1 = -0.2145988016;
@@ -84,40 +88,85 @@ double hastings_asin(double x) {
   return -1.0 * res;
 }
 
+// agm_acos is disabled because it is terribly slow, even when
+// used with poor accuracy.
+#if 0
+inline double agm_acos_aux(double x) {
+  double const L = std::sqrt(1-x*x);
+  double a = x;
+  double b = 1.0;
+  while(std::abs(a-b) > 1.e-3)
+  {
+    a = 0.5 * (a+b);
+    b = std::sqrt(a*b);
+  }
+  return L/a;
+}
+
+__attribute__((noinline))
+double agm_acos(double xin) {
+  double x = std::abs(xin);
+  double res = agm_acos_aux(x);
+  if (xin >= 0.) return res;
+  return M_PI - res;
+}
+#endif
+
+__attribute__((noinline))
+double std_acos(double x)
+{
+  return std::acos(x);
+}
+
+
+__attribute__((noinline))
+float std_acosf(float x)
+{
+  return std::acos(x);
+}
+
 template <typename F>
 void
 run_bench(F func, ankerl::nanobench::Bench* bench, char const* name)
 {
-  double x = 0.57;
+  volatile double x = 0.457;
+  volatile double y = -0.57;
   bench->run(name, [&]() {
-      double z = func(x);
-      ankerl::nanobench::doNotOptimizeAway(z);
+      double z1 = func(x);
+      double z2 = func(y);
+      ankerl::nanobench::doNotOptimizeAway(z1);
+      ankerl::nanobench::doNotOptimizeAway(z2);
       });
 }
 
-#if 0
+void bmark() {
+  ankerl::nanobench::Bench b;
+  b.title("acos tests")
+    .performanceCounters(true)
+    .minEpochIterations(1000 * 1000);
+  run_bench(&fast_acos, &b, "fast_acos");
+  run_bench(&hastings_acos, &b, "hastings_acos");
+  run_bench(&hastings_acos_obfuscated, &b, "hastings_acos_obfuscated");
+  run_bench(&std_acos, &b, "acosd");
+  run_bench(&std_acosf, &b, "acosf");
+}
+
 int main() {
   int const npoints = 100 * 1000;
   double const xmin = -1.0;
   double const xmax = 1.0;
   double dx = (xmax - xmin) / npoints;
-  std::cout << "x\tfast\tstd\tstdf\thastings\n" << std::setprecision(17);
+  std::cerr << "x\tfast\tstd\tstdf\thastings\n" << std::setprecision(17);
 
   for (int i = 0; i != npoints; ++i) {
     double const x = xmin + i * dx;
     float const xf = x;
-    std::cout << x << '\t' << fast_acos(x) << '\t' << std::acos(x) << '\t'
-              << std::acos(xf) << '\t' << hastings_acos(x) << '\n';
+    std::cerr << x << '\t'
+              << fast_acos(x) << '\t'
+              << std::acos(x) << '\t'
+              << std::acos(xf) << '\t'
+              << hastings_acos(x) << '\n';
   }
-}
-#endif
 
-int main() {
-  ankerl::nanobench::Bench b;
-  b.title("acos tests")
-    .performanceCounters(true)
-    .minEpochIterations(50 * 1000 * 1000);
-  run_bench(&fast_acos, &b, "fast_acos");
-  run_bench(&hastings_acos, &b, "hastings_acos");
-  run_bench(&hastings_acos_obfuscated, &b, "hastings_acos_obfuscated");
+  bmark();
 }
