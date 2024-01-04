@@ -65,9 +65,23 @@ Essentially no automatic vectorization is done.
 
 ## `phot::fast_acos`
 
-* Implementation from *Approximations for Digital Computers*, C. Hastings, Jr, published by Princeton University Press (1955).
+* Implementation from *Approximations for Digital Computers*, C. Hastings, Jr, published by Princeton University Press (1955), with flourishes that seem to be related to an implementation posted by NVIDIA.
 * Invented before computers had instruction sets that included trig functions.
 * Invented before the IEEE floating point standard was devised.
+* Do we need such a thing today?
+
+## Microbenchmarking results
+
+* Data collected on the same machine as used for VTune results.
+
+| ns/op | err% | ins/op | bra/op | acos tests
+|------:|-----:|-------:|-------:|:-----------
+| 12.36 | 0.0% |  85.00 |   9.00 | `fast_acos`
+| 34.80 | 2.8% | 217.00 |  35.00 | `acos(double)`
+| 20.29 | 0.3% | 114.00 |  20.00 | `acos(float)`
+
+* `fast_acos` is clearly faster than even the single-precision math library function.
+* Less time per operation, because of fewer instructions and fewer branches encountered.
 
 ## `phot::fast_acos` shape of the curve
 
@@ -84,20 +98,6 @@ ggplot(x) +
   #geom_point(mapping=aes(x, std), color = "magenta") +
   geom_point(mapping=aes(x, fast), color = "cyan") +
   labs(x="x", y="fast_acos")
-```
-
-## `phot::fast_acos` shape: zoomed in near x=0.5
-
-```{r, echo=FALSE}
-#| fig-height: 4.5
-filter(x, x>0.4995, x< 0.5005) |>
-  ggplot() +
-    geom_point(mapping=aes(x, std), color = "magenta") +
-    geom_point(mapping=aes(x, fast), color = "cyan") +
-    geom_line(mapping=aes(x, stdf), color = "red") +
-    geom_line(mapping=aes(x, hastings), color = "green") +
-    labs(x="x",
-         y="cyan: fast_acos\nmagenta: std::acos(double)\nred line:std::acos(float)\ngreen line:hastings")
 ```
 
 ## `phot::fast_acos` difference from C library
@@ -120,5 +120,31 @@ ggplot(x, aes(x, fracdiff)) +
 
 ## Is `phot::fast_acos` sufficiently accurate?
 
-* If not, then replacing it with `std::acos` is trivial; the cost is a factor of ~4 in speed.
-* If yes, then replacing it with `hastings_acos` yields identical results, and about a 30% speed improvement.
+* If not, then replacing it with `std::acos` is trivial; the cost is a factor of 60% in speed.
+* If yes, then I have some modifications that yield identical results, and about a 40% speed improvement.
+
+## New implementation: `hastings_acos`
+
+| ns/op |  err% | ins/op | bra/op | acos tests
+|------:|------:|-------:|-------:|:-----------
+| 12.36 |  0.0% |  85.00 |   9.00 | `fast_acos`
+|  7.04 |  0.7% |  57.00 |   8.00 | `hastings_acos`
+
+* The significant code change is undoing the "flourishes" that are appropriate for GPU usage, but are counterproductive on CPUs.
+* Used in context, VTune reports 4.240 seconds spent in the new algorithm (compare with 7.111 seconds from the original),
+* `PDFastSimPAR::produce` now takes 44.280 seconds (compare with 48.220 seconds).
+
+## Various `acos` outputs: zoomed in near x=0.5
+
+```{r, echo=FALSE}
+#| fig-height: 4.5
+filter(x, x>0.4995, x< 0.5005) |>
+  ggplot() +
+    geom_point(mapping=aes(x, std), color = "magenta") +
+    geom_point(mapping=aes(x, fast), color = "cyan") +
+    geom_line(mapping=aes(x, stdf), color = "red") +
+    geom_line(mapping=aes(x, hastings), color = "green") +
+    labs(x="x",
+         y="cyan: fast_acos\nmagenta: std::acos(double)\nred line:std::acos(float)\ngreen line:hastings")
+```
+
