@@ -72,21 +72,25 @@ double hastings_acos(double xin) {
 
 
 __attribute__((noinline))
-double hastings_asin(double x) {
-  double const a0 =  1.5707963050;
-  double const a1 = -0.2145988016;
-  double const a2 =  0.0889789874;
-  double const a3 = -0.0501743046;
-  double const a4 =  0.0308918810;
-  double const a5 = -0.0170881256;
-  double const a6 =  0.0066700901;
-  double const a7 = -0.0012624911;
-  //double const m_pi_2 = static_cast<double>(M_PI_2);
-  //double const m_pi = static_cast<double>(M_PI);
-  double const res = M_PI_2 - std::sqrt(1.0-x) * (a0 + a1*x + a2*x*x + a3*x*x*x + a4*x*x*x*x + a5*x*x*x*x*x + a6*x*x*x*x*x*x + a7*x*x*x*x*x*x*x);
-  if (x>=0) return res;
-  return -1.0 * res;
+double hastings_acos_4(double xin)
+{
+  double const a3 = -2.08730442907856008e-02;
+  double const a2 =  7.68769404161671888e-02;
+  double const a1 = -2.12871094165645952e-01;
+  double const a0 =  1.57075835365209659e+00;
+  double const x = std::abs(xin);
+  double ret = a3;
+  ret *= x;
+  ret += a2;
+  ret *= x;
+  ret += a1;
+  ret *= x;
+  ret += a0;
+  ret *= std::sqrt(1.0-x);
+  if (xin >= 0) return ret;
+  return M_PI - ret;
 }
+
 
 // agm_acos is disabled because it is terribly slow, even when
 // used with poor accuracy.
@@ -149,6 +153,7 @@ void bmark() {
   run_bench(&hastings_acos_obfuscated, &b, "hastings_acos_obfuscated");
   run_bench(&std_acos, &b, "acosd");
   run_bench(&std_acosf, &b, "acosf");
+  run_bench(&hastings_acos_4, &b, "hastings_acos_4");
 }
 
 int main() {
@@ -156,7 +161,7 @@ int main() {
   double const xmin = -1.0;
   double const xmax = 1.0;
   double dx = (xmax - xmin) / npoints;
-  std::cerr << "x\tfast\tstd\tstdf\thastings\n" << std::setprecision(17);
+  std::cerr << "x\tfast\tstd\tstdf\thastings\thastings_4\n" << std::setprecision(17);
 
   for (int i = 0; i != npoints; ++i) {
     double const x = xmin + i * dx;
@@ -165,7 +170,8 @@ int main() {
               << fast_acos(x) << '\t'
               << std::acos(x) << '\t'
               << std::acos(xf) << '\t'
-              << hastings_acos(x) << '\n';
+              << hastings_acos(x) << '\t'
+              << hastings_acos_4(x) << '\n';
   }
 
   bmark();

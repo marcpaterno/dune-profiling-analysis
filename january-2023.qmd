@@ -106,7 +106,7 @@ ggplot(x) +
 #| fig-height: 4.5
 ggplot(x, aes(x, diff)) +
   geom_point(size=0.1) +
-  labs(x="x", y = "std::acos(float) - fast_acos")
+  labs(x="x", y = "std::acos(double) - fast_acos")
 ```
 
 ## `phot::fast_acos` relative difference from C library
