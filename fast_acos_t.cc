@@ -4,6 +4,8 @@
 
 #include "nanobench.h"
 
+double ieee754_acos(double);
+
 // This is from LArSim.
 
  __attribute__((noinline))
@@ -92,6 +94,30 @@ double hastings_acos_4(double xin)
 }
 
 
+__attribute__((noinline))
+double hastings_acos_5(double xin)
+{
+ double const a4 = 9.50315681176718517e-03;
+ double const a3 = -3.71396716361111767e-02;
+ double const a2 = 8.53490896033951146e-02;
+ double const a1 = -2.14230829342607842e-01;
+ double const a0 = 1.57079026598004301e+00;
+  double const x = std::abs(xin);
+  double ret = a4;
+  ret *= x;
+  ret += a3;
+  ret *= x;
+  ret += a2;
+  ret *= x;
+  ret += a1;
+  ret *= x;
+  ret += a0;
+  ret *= std::sqrt(1.0-x);
+  if (xin >= 0) return ret;
+  return M_PI - ret;
+}
+
+
 // agm_acos is disabled because it is terribly slow, even when
 // used with poor accuracy.
 #if 0
@@ -154,6 +180,8 @@ void bmark() {
   run_bench(&std_acos, &b, "acosd");
   run_bench(&std_acosf, &b, "acosf");
   run_bench(&hastings_acos_4, &b, "hastings_acos_4");
+  run_bench(&hastings_acos_5, &b, "hastings_acos_5");
+  run_bench(&ieee754_acos, &b, "ieee");
 }
 
 int main() {
@@ -161,7 +189,7 @@ int main() {
   double const xmin = -1.0;
   double const xmax = 1.0;
   double dx = (xmax - xmin) / npoints;
-  std::cerr << "x\tfast\tstd\tstdf\thastings\thastings_4\n" << std::setprecision(17);
+  std::cerr << "x\tfast\tstd\tstdf\thastings\thastings_4\thastings_5\n" << std::setprecision(17);
 
   for (int i = 0; i != npoints; ++i) {
     double const x = xmin + i * dx;
@@ -171,7 +199,8 @@ int main() {
               << std::acos(x) << '\t'
               << std::acos(xf) << '\t'
               << hastings_acos(x) << '\t'
-              << hastings_acos_4(x) << '\n';
+              << hastings_acos_4(x) << '\t'
+              << hastings_acos_5(x) << '\n';
   }
 
   bmark();

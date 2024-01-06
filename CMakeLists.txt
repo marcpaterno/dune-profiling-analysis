@@ -21,6 +21,6 @@ FetchContent_Declare(
   GIT_SHALLOW TRUE)
 FetchContent_MakeAvailable(nanobench)
 
-add_executable(fast_acos_t fast_acos_t.cc)
+add_executable(fast_acos_t fast_acos_t.cc ieee_acos.cc)
 target_link_libraries(fast_acos_t PRIVATE nanobench)
 
