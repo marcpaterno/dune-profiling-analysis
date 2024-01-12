@@ -1,0 +1,7 @@
+run,func,t,type
+1,phot::fast_acos,7.111,full
+1,PDFastSimPAR::produce,48.220,full
+3,phot::fast_acos,4.130,full
+3,PDFastSimPAR::produce,44.710,full
+4,phot::fast_acos,5.310,full
+4,PDFastSimPAR::produce,45.600,full
