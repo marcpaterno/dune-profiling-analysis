@@ -16,7 +16,7 @@ format:
     aspectratio: 169
 ---
 
-```{r, setup, include=FALSE}
+```{r, setup}
 library(tidyverse)
 source("functions.R")
 bmarks <- read_benchmark("benchmark_2024_01_06.txt")
@@ -110,9 +110,9 @@ x <- mutate(x,
 ```{r, echo=FALSE}
 #| fig-height: 4.5
 ggplot(x) +
-  #geom_point(mapping=aes(x, std), color = "magenta") +
   geom_point(mapping=aes(x, fast), color = "cyan") +
-  labs(x="x", y="fast_acos")
+  labs(x="x", y="fast_acos") +
+  theme_light()
 ```
 
 ## `phot::fast_acos` difference from C library
@@ -120,8 +120,9 @@ ggplot(x) +
 ```{r, echo = FALSE}
 #| fig-height: 4.5
 ggplot(x, aes(x, dfast)) +
-  geom_point(size=0.1) +
-  labs(x="x", y = "std::acos(double) - fast_acos")
+  geom_point(color="cyan") +
+  labs(x="x", y = "std::acos(double) - fast_acos") +
+  theme_light()
 ```
 
 ## `phot::fast_acos` relative difference from C library
@@ -129,14 +130,15 @@ ggplot(x, aes(x, dfast)) +
 ```{r, echo=FALSE}
 #| fig-height: 4.5
 ggplot(x, aes(x, fracdiff)) +
-  geom_point(size=0.1) +
-  labs(x="x", y="|fractional difference|")
+  geom_point(color="cyan") +
+  labs(x="x", y="|fractional difference|") +
+  theme_light()
 ```
 
 ## Is `phot::fast_acos` sufficiently accurate?
 
 * If not, then replacing it with `std::acos` is trivial; the cost is a factor of 1.8 in the time taken for this operation.
-* If yes, then I have some modifications for you to consider...
+* If yes, then I have some modifications for you to consider...git
 
 ## New implementations
 
@@ -166,14 +168,33 @@ select(bmarks, -err) |>
 #| fig-height: 4.5
 ggplot(x) +
   geom_point(mapping=aes(x, dfast), color = "cyan") +
-  geom_line(mapping=aes(x, dhast), color = "red") +
+  geom_line(mapping=aes(x, dhast), color = "black") +
   geom_line(mapping=aes(x, dhast4), color = "magenta") +
-  geom_line(mapping=aes(x, dhast5), color = "orange") +  
+  geom_line(mapping=aes(x, dhast5), color = "red") +
   labs(x="x",
-         y="cyan: fast_acos\nred: hastings\nmagenta hastings_4\norange: hastings_5")
+         y="cyan: fast_acos\nblack: hastings\nmagenta hastings_4\nred: hastings_5") +
+  theme_light()
 ```
 
+## Comparison of absolute differences in calculated results
+
+```{r, echo=FALSE}
+#| fig-height: 4.5
+filter(x, -0.125 < x, x < 0.125) |>
+  ggplot() +
+  geom_point(mapping=aes(x, dfast), color = "cyan") +
+  geom_line(mapping=aes(x, dhast), color = "black") +
+  geom_line(mapping=aes(x, dhast4), color = "magenta") +
+  geom_line(mapping=aes(x, dhast5), color = "red") +
+  labs(x="x",
+         y="cyan: fast_acos\nblack: hastings\nmagenta hastings_4\nred: hastings_5") +
+  theme_light()
+```
+
+
 ## VTune results
+
+* Numbers are (inclusive) times, in seconds, spent in the named function, for code using the given algorithm.
 
 ```{r, echo=FALSE}
 vtune |>
@@ -189,7 +210,9 @@ vtune |>
 
 ## {.plain}
 
-The following are backup slides, explaining a bit more detail about `fast_acos`.
+:::{.r-stack}
+Backup slides.
+:::
 
 ## {.plain}
 
@@ -237,7 +260,7 @@ double hastings_acos(double xin) {
 :::
 ::::
 
-## How I generated `hastings_acos_4` and `hasting_acos_5`
+## How I generated `hastings_acos_4` and `hastings_acos_5`
 
 * The functional form of all the "fast" algorithms is:
 
@@ -252,7 +275,7 @@ $$
 $$
 
 * The original algorithm has the fit parameters calculated in single precision.
-* `hasting_acos` has identical parameters but fewer operations & branches.
+* `hastings_acos` has identical parameters but fewer operations & branches.
 * `hastings_acos_4` has fit parameters calcluated to double precsion, and is otherwise identical to `hastings_acos_4`.
 * `hastings_acos_5` uses 5 fit parameters calculated to double precsion.
 * Using 6 parameters yielded a slower algorithm but no better accuracy.
