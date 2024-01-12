@@ -36,29 +36,33 @@ This aligns with the LArSoft "high priority" goal list.
     #. If the result is still insufficient, adapt the parallel algorithm for \alert{GPU usage}.
 * `PDFastSimPAR` was the clear most time-consuming module used in the DUNE workflows that is found in LArSoft.
 
+:::{.notes}
+These are my speaker notes.
+:::
+
 ## Workflow based on a standard DUNE FD simulation workflows
 
-`lar` configurations:
+`lar` configurations using this module:
 
 * `prodbackground_radiological_decay0_dunevd10kt_1x8x14.fcl`
-* `prodmarley_nue_flat_radiological_decay0_dunevd10kt_1x8x14_3view_30deg.fcl`
+* `prodmarley_nue_flat_radiological_decay0_dunevd10kt_1x8x14_` `3view_30deg.fcl`
 
-Geant4 simulation as input:
+Geant4 simulation used as input:
 
 * `/pnfs/dune/persistent/users/lpaulucc/leprodtests/`
   `prodradiological_decay0_dunevd10kt_1x8x14_gen.root`
 
-Break the workflow into two parts:
+To make profiling data collection easier, I broke the workflow into two parts:
 
 * Everything \alert{before} the `PDFastSimPAR` module, which I write to an art/ROOT file, and
-* The `PDFastSimPAR` module run alone, on the output from the previous step.
+* the `PDFastSimPAR` module run alone, on the output from the previous step.
 
 ## Profiling data collection
 
 * I am using the Intel VTune performance analysis suite of tools.
-* Running an `opt` build on a SLF7 Linux machine.
-* Hardware is Skylake AVX512
-* Standard `opt` build does \alert{not} activate the compiler options to make full use of the instruction set.
+* Running a `prof` build on a SLF7 Linux machine.
+* Hardware is Skylake AVX512.
+* Standard `prof` build does \alert{not} activate the compiler options to make full use of the instruction set.
 Essentially no automatic vectorization is done.
 * VTune collects a huge amount of data; I run on only 1 event to keep the data analysis feasible.
 * Happily, previous analysis shows that the time taken to process events in the given file is very uniform.
@@ -76,8 +80,8 @@ run_03 <- filter(vtune, run==3)
 ## `phot::fast_acos`
 
 * Implementation from *Approximations for Digital Computers*, C. Hastings, Jr, published by Princeton University Press (1955), with flourishes that seem to be related to an implementation posted by NVIDIA.
-* Invented before computers had instruction sets that included trig functions.
 * Invented before the IEEE floating point standard was devised.
+* Not all computers at that time had instruction sets that included trig functions.
 * Do we need such a thing today?
 
 ## Microbenchmarking results
@@ -138,7 +142,7 @@ ggplot(x, aes(x, fracdiff)) +
 ## Is `phot::fast_acos` sufficiently accurate?
 
 * If not, then replacing it with `std::acos` is trivial; the cost is a factor of 1.8 in the time taken for this operation.
-* If yes, then I have some modifications for you to consider...git
+* If yes, then I have some modifications for you to consider...
 
 ## New implementations
 
