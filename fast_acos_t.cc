@@ -26,6 +26,13 @@ double ieee754_acos(double);
 }
 
 __attribute__((noinline))
+__attribute__((optimize("-ffast-math")))
+double std_acosd_fm(double x)
+{
+  return std::acos(x);
+}
+
+__attribute__((noinline))
 double hastings_acos_obfuscated(double xin) {
   double x = xin;
   double term = 0.0;
@@ -155,6 +162,45 @@ float std_acosf(float x)
   return std::acos(x);
 }
 
+// Adapted from https://mazzo.li/posts/vectorized-atan2.html#code
+
+inline double atan_approximation(double x)
+{
+  double a1  =  0.99997726f;
+  double a3  = -0.33262347f;
+  double a5  =  0.19354346f;
+  double a7  = -0.11643287f;
+  double a9  =  0.05265332f;
+  double a11 = -0.01172120f;
+  double x_sq = x*x;
+  return
+  x * (a1 + x_sq * (a3 + x_sq * (a5 + x_sq * (a7 + x_sq * (a9 + x_sq * a11)))));
+}
+
+double atan2_auto(double y, double x)
+{
+    // Ensure input is in [-1, +1]
+    bool swap = std::abs(x) < std::abs(y);
+    auto  atan_input = (swap ? x : y) / (swap ? y : x);
+    // Approximate atan
+    auto res = atan_approximation(atan_input);
+    // If swapped, adjust atan output
+    res = swap ? (atan_input >= 0.0 ? M_PI_2 : -M_PI_2) - res : res;
+    // Adjust quadrants
+    if      (x >= 0.0 && y >= 0.0) {}                     // 1st quadrant
+    else if (x <  0.0 && y >= 0.0) { res =  M_PI + res; } // 2nd quadrant
+    else if (x <  0.0 && y <  0.0) { res = -M_PI + res; } // 3rd quadrant
+    else if (x >= 0.0 && y <  0.0) {}                     // 4th quadrant
+    
+    return res;
+}
+
+__attribute__((noinline))
+double acos_from_atan2(double x)
+{
+  return atan2_auto(std::sqrt((1.0+x)*(1.0-x)), x);
+}
+
 template <typename F>
 void
 run_bench(F func, ankerl::nanobench::Bench* bench, char const* name)
@@ -182,6 +228,8 @@ void bmark() {
   run_bench(&hastings_acos_4, &b, "hastings_acos_4");
   run_bench(&hastings_acos_5, &b, "hastings_acos_5");
   run_bench(&ieee754_acos, &b, "ieee");
+  run_bench(&acos_from_atan2, &b, "acos_from_atan2");
+  run_bench(&std_acosd_fm, &b, "acosd_fm");
 }
 
 int main() {
