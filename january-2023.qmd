@@ -114,7 +114,7 @@ x <- mutate(x,
 ```{r, echo=FALSE}
 #| fig-height: 4.5
 ggplot(x) +
-  geom_point(mapping=aes(x, fast), color = "cyan") +
+  geom_line(mapping=aes(x, fast), color = "cyan", size=2.0) +
   labs(x="x", y="fast_acos") +
   theme_light()
 ```
@@ -124,7 +124,7 @@ ggplot(x) +
 ```{r, echo = FALSE}
 #| fig-height: 4.5
 ggplot(x, aes(x, dfast)) +
-  geom_point(color="cyan") +
+  geom_line(color="cyan", size=2.0) +
   labs(x="x", y = "std::acos(double) - fast_acos") +
   theme_light()
 ```
@@ -134,7 +134,7 @@ ggplot(x, aes(x, dfast)) +
 ```{r, echo=FALSE}
 #| fig-height: 4.5
 ggplot(x, aes(x, fracdiff)) +
-  geom_point(color="cyan") +
+  geom_line(color="cyan", size=2.0) +
   labs(x="x", y="|fractional difference|") +
   theme_light()
 ```
@@ -171,7 +171,7 @@ select(bmarks, -err) |>
 ```{r, echo=FALSE}
 #| fig-height: 4.5
 ggplot(x) +
-  geom_point(mapping=aes(x, dfast), color = "cyan") +
+  geom_line(mapping=aes(x, dfast), color = "cyan", size=2.0) +
   geom_line(mapping=aes(x, dhast), color = "black") +
   geom_line(mapping=aes(x, dhast4), color = "magenta") +
   geom_line(mapping=aes(x, dhast5), color = "red") +
@@ -186,7 +186,7 @@ ggplot(x) +
 #| fig-height: 4.5
 filter(x, -0.125 < x, x < 0.125) |>
   ggplot() +
-  geom_point(mapping=aes(x, dfast), color = "cyan") +
+  geom_line(mapping=aes(x, dfast), color = "cyan", size=2.0) +
   geom_line(mapping=aes(x, dhast), color = "black") +
   geom_line(mapping=aes(x, dhast4), color = "magenta") +
   geom_line(mapping=aes(x, dhast5), color = "red") +
