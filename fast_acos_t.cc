@@ -219,7 +219,7 @@ void bmark() {
   ankerl::nanobench::Bench b;
   b.title("acos tests")
     .performanceCounters(true)
-    .minEpochIterations(1000 * 1000);
+    .minEpochIterations(10 * 1000 * 1000);
   run_bench(&fast_acos, &b, "fast_acos");
   run_bench(&hastings_acos, &b, "hastings_acos");
   run_bench(&hastings_acos_obfuscated, &b, "hastings_acos_obfuscated");
