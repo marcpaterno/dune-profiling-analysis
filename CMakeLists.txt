@@ -24,3 +24,9 @@ FetchContent_MakeAvailable(nanobench)
 add_executable(fast_acos_t fast_acos_t.cc ieee_acos.cc)
 target_link_libraries(fast_acos_t PRIVATE nanobench)
 
+add_executable(fast_atan_t fast_atan_t.cc)
+target_link_libraries(fast_atan_t PRIVATE nanobench)
+
+add_executable(omega_t omega_t.cc)
+target_link_libraries(omega_t PRIVATE nanobench)
+
