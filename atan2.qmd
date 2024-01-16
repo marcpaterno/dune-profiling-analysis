@@ -1,0 +1,43 @@
+---
+title: "Investigating atan2"
+author: "Marc Paterno"
+institute: "Fermi National Accelerator Laboratory"
+date: last-modified
+date-format: long
+cache: false
+format:
+  html:
+    theme: plain
+  beamer:
+    theme: MFP
+    monofont: "Monaco"
+    pdf-engine: xelatex
+    mainfont: Geneva
+    aspectratio: 169
+    fig-height: 4.5
+---
+
+```{r, setup}
+library(tidyverse)
+source("functions.R")
+x <- read_tsv("atan2.tsv") |>
+  mutate(d_1 = atan2d - atan2_1)
+```
+
+## Fits
+
+```{r}
+ggplot(x) +
+  geom_line(mapping=aes(x, atan2d), color="cyan", linewidth=2) +
+  geom_line(mapping=aes(x, atan2_1)) +
+  theme_light()
+```
+
+## Difference
+
+```{r}
+ggplot(x, aes(x, d_1)) +
+  geom_line() +
+  theme_light()
+```
+
