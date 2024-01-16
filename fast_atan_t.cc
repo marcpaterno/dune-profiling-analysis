@@ -2,6 +2,7 @@
 #include <iomanip>
 #include <iostream>
 #include <limits>
+#include <random>
 
 #include "nanobench.h"
 
@@ -25,37 +26,54 @@ inline double atan2_aux(double z) {
 }
 
 double atan2_1(double y, double x) {
-  if (x > 0)
-    return atan2_aux(y / x);
-  if (x < 0) {
-    if (y >= 0)
-      return M_PI + atan2_aux(y / x);
-    return -M_PI + atan2_aux(y / x);
+  if (x == 0) {
+    if (y > 0)
+      return M_PI_2;
+    if (y < 0)
+      return -M_PI_2;
+    // We now know y == 0
+    return std::numeric_limits<double>::quiet_NaN();
   }
-  // We now know x == 0.0
-  if (y > 0)
-    return M_PI_2;
-  if (y < 0)
-    return -M_PI_2;
-  // We now know y == 0
-  return std::numeric_limits<double>::quiet_NaN();
+  // We now know x != 0.0
+  double const tmp = atan2_aux(y / x);
+  if (x > 0)
+    return tmp;
+  // Now we know x < 0
+  if (y >= 0)
+    return M_PI + tmp;
+  return -M_PI + tmp;
+}
+
+std::vector<double> make_randoms(unsigned long n) {
+  std::minstd_rand0 engine(123);
+  std::uniform_real_distribution<double> dist{-4.0, 4.0};
+  auto gen = [&dist, &engine]() { return dist(engine); };
+
+  std::vector<double> values(n);
+  std::generate(begin(values), end(values), gen);
+  return values;
 }
 
 template <typename F>
 void run_bench(F func, ankerl::nanobench::Bench *bench, char const *name) {
-  volatile double x = 0.457;
-  volatile double y = -0.57;
+  // array sizes are set large enough to exhause L2 cache on my laptop.
+  unsigned long const n = 1 * 1000 * 1000;
+  auto vals = make_randoms(2 * n);
+  std::vector<double> zs(n);
   bench->run(name, [&]() {
-    double z = func(y, x);
-    ankerl::nanobench::doNotOptimizeAway(z);
+    for (int i = 0; i != n; ++i) {
+      zs[i] = func(vals[i], vals[i + n]);
+    }
+    ankerl::nanobench::doNotOptimizeAway(zs);
   });
 }
 
 void bmark() {
   ankerl::nanobench::Bench b;
-  b.title("atan tests")
-      .performanceCounters(true)
-      .minEpochIterations(1 * 1000 * 1000);
+  b.title("atan tests");
+  b.performanceCounters(true);
+  // b.minEpochIterations(1 * 1000);
+
   run_bench(&atan2d, &b, "atan2d");
   run_bench(&atan2_1, &b, "atan2_1");
 }
