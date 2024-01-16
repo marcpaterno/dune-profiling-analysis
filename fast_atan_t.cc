@@ -1,3 +1,4 @@
+#include <algorithm> // for std::generate
 #include <cmath>
 #include <iomanip>
 #include <iostream>
