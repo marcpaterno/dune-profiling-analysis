@@ -124,13 +124,17 @@ int main() {
   double const ymin = -4.0;
   double const ymax = 4.0;
   double dy = (ymax - ymin) / npoints;
-  std::cerr << "x\tatan2d\tatan2_1\n" << std::setprecision(17);
+  std::cerr << "x\tatan2d\tatan2_1\tatan2_4\n" << std::setprecision(17);
 
   for (int i = 0; i != npoints + 1; ++i) {
     double const y = ymin + i * dy;
     // double const frac = static_cast<double>(i)/npoints;
     // double const y = ymax * frac; // we know that ymin is zero
-    std::cerr << y << '\t' << atan2d(y, 1.0) << '\t' << atan2_1(y, 1.0) << '\n';
+    std::cerr << y <<
+      '\t' << atan2d(y, 1.0)
+      << '\t' << atan2_1(y, 1.0)
+      << '\t' << atan2_4(y, 1.0)
+      << '\n';
   }
 
   bmark();

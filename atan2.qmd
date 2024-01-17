@@ -21,7 +21,8 @@ format:
 library(tidyverse)
 source("functions.R")
 x <- read_tsv("atan2.tsv") |>
-  mutate(d_1 = atan2d - atan2_1)
+  mutate(d_1 = atan2d - atan2_1,
+         d_4 = atan2d - atan2_4)
 ```
 
 ## Fits
@@ -30,14 +31,16 @@ x <- read_tsv("atan2.tsv") |>
 ggplot(x) +
   geom_line(mapping=aes(x, atan2d), color="cyan", linewidth=2) +
   geom_line(mapping=aes(x, atan2_1)) +
+  geom_line(mapping=aes(x, atan2_4), color="green") +
   theme_light()
 ```
 
 ## Difference
 
 ```{r}
-ggplot(x, aes(x, d_1)) +
-  geom_line() +
+ggplot(x) +
+  geom_line(mapping = aes(x, d_1)) +
+  geom_line(mapping = aes(x, d_4), color = "green") +
   theme_light()
 ```
 
