@@ -1,0 +1,45 @@
+---
+title: "PDFastSimPAR Performance Analysis"
+author: "Marc Paterno"
+format: html
+execute:
+  echo: false
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+source("functions.R")
+```
+
+## Run information
+
+The following table shows the set of runs we have.
+
+```{r catalog_info}
+catalog <- read_tsv("run_catalog.tsv", col_types = "iccc")
+
+select(catalog, -c("directory")) |>
+  knitr::kable()
+```
+
+```{r read_data}
+read_hs <- function(runid)
+{
+  filename <- sprintf("./data/r%03dh.tsv", runid)
+  read_vtune_hotspots(filename) |>
+    mutate(run=runid, .before=1)
+}
+
+hs <- bind_rows(lapply(catalog$run, read_hs))
+```
+
+
+We read the hotspot analysis results into a single dataframe.
+Here is a slice of the dataframe:
+
+```{r}
+slice_sample(hs, n=10) |>
+  arrange(run) |>
+  knitr::kable()
+```
+

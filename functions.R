@@ -43,3 +43,34 @@ read_vtune <- function(filename)
   d <- read_csv(filename, col_types="ifdf")
   pivot_wider(d, names_from=func, values_from=t)  
 }
+
+#' Read VTune hotspot reports
+#'
+#' @param filename 
+#'
+#' @return a hotspot tibble
+#' @export
+#'
+#' @examples
+read_vtune_hotspots <- function(filename)
+{
+  checkmate::assert_file(filename)
+  readr::read_tsv(filename, show_col_types=FALSE) |>
+    rename(func = Function,
+           t = `CPU Time`,
+           teff = `CPU Time:Effective Time`,
+           tspin = `CPU Time:Spin Time`,
+           tspinimb = `CPU Time:Spin Time:Imbalance or Serial Spinning`,
+           tspinlock = `CPU Time:Spin Time:Lock Contention`,
+           tspinother = `CPU Time:Spin Time:Other`,
+           tover = `CPU Time:Overhead Time`,
+           tovercreate = `CPU Time:Overhead Time:Creation`,
+           toversched = `CPU Time:Overhead Time:Scheduling`,
+           toverred = `CPU Time:Overhead Time:Reduction`,
+           toveratom = `CPU Time:Overhead Time:Atomics`,
+           toverother = `CPU Time:Overhead Time:Other`,
+           lib = Module,
+           funcname = `Function (Full)`,
+           file = `Source File`,
+           addr = `Start Address`)
+}
