@@ -1,0 +1,227 @@
+---
+title: "Physics Validation: 1 of N"
+author: "Marc Paterno"
+date: last-modified
+format:
+  html:
+    theme: cerulean
+    mainfont: Georgia
+    linestretch: 1.3
+    code-overflow: wrap
+execute: 
+  echo: false
+---
+```{r setup, include=FALSE}
+library(tidyverse)
+library(lucid)
+source("functions.R")
+use_cache <- TRUE
+```
+
+## Purpose
+
+This document is part of the description of the physics validation effort for the `PDFastSimPAR` optimization work I am doing.
+This first document concentrates on verifying that the pre-modification version of the code I ran is working in the expected fashion.
+It also serves to identify the particular quantities of interest to compare across different implementations of the `PDFastSimPAR` code.
+
+### Data
+
+The data for this analysis is kept in the `physics_validation_data` directory.
+
+```{r read_data, cache=use_cache}
+orig_spls <-
+  readr::read_tsv("physics_validation_data/spls_orig.tsv",
+                  col_types = "iiiii")
+orig_ticks <-
+  readr::read_tsv("physics_validation_data/ticks_orig.tsv.xz",
+                  col_types = "iiiiii")
+
+event_ids <-
+  orig_spls |>
+  select(run, subrun, event) |>
+  unique()
+```
+
+## Distributions from the original code
+
+We have `r nrow(event_ids)` events processed with the original code.
+
+### Distributions for channels
+
+First we look at the number of `SimPhotonsLite` objects in each event.
+We see that each event has the same number of objects.
+Is this because this is the number of channels in the detector?
+
+```{r}
+orig_spls |>
+  group_by(event) |>
+  summarise(nobj= n()) |>
+  t() |>
+  as.data.frame() |>
+  knitr::kable(col.names=c())
+```
+
+Next we look at the number of measurements in each `SimPhotonsLite` object in each event.
+The events are all roughly similar in their distribution, but they are not identical:
+
+```{r}
+ggplot(orig_spls, aes(nmeas)) +
+  geom_histogram(bins=40) +
+  facet_wrap(vars(event)) +
+  labs(x="Number of measurements per channel") +
+  theme_light()
+```
+
+Because the events are similar, it may make sense to aggregate these data across all events:
+```{r}
+ggplot(orig_spls, aes(nmeas)) +
+  geom_histogram(bins=40) +
+  labs(x="Number of measurements per channel") +
+  theme_light()
+```
+
+This is an approximately log-normal distribution, as we can see by applying a log transform to the $x$ axis:
+
+```{r}
+ggplot(orig_spls, aes(nmeas)) +
+  geom_histogram(bins=40) +
+  labs(x="Number of measurements per channel") +
+  scale_x_log10() +
+  theme_light()
+```
+
+We can also summarize the number of photons for each channel (summed over all measurements for that channel):
+
+```{r, cache=use_cache}
+#| warning: false
+per_channel <-
+  group_by(orig_ticks, run, subrun, event, channel) |>
+  summarize(nphots = sum(nphot), .groups="drop")
+orig_spls <- inner_join(orig_spls, per_channel)
+```
+
+```{r}
+ggplot(orig_spls, aes(nphots)) +
+  geom_histogram(bins=40) +
+  labs(x="Number of photons per channel") +
+  scale_x_log10(labels=scales::number) +
+  theme_light()
+```
+
+Since there are extreme values for both number of measurements per channel and number of photons per channel, we might want to know if they are correlated:
+
+```{r}
+ggplot(orig_spls, aes(nmeas, nphots)) +
+  scale_x_log10(labels=scales::number) +
+  scale_y_log10(labels=scales::number) +
+  geom_point(alpha=0.25) +
+  labs(x="Measurements per channel", y="Photons per channel") +
+  theme_light()
+  
+```
+
+One summary of this correlation is the distribution of the number of photons per measurement for all channels.
+Note the log scales on both axes:
+
+```{r}
+#| warning: false
+rcut <- 1.75
+ggplot(orig_spls, aes(x=nphots/nmeas)) +
+  geom_histogram(bins=40) +
+  labs(x="Average photons per measurement for all channels") +
+  scale_x_log10() +
+  scale_y_continuous(trans=scales::pseudo_log_trans(base=10), labels=scales::number) +
+  geom_vline(xintercept = rcut, color="cyan") +
+  theme_light()
+```
+
+There are very few channels that have an average of more than `r rcut` photons per measurement; the cyan line is at $x$ = `r rcut`.
+Each such channel is listed in the table below.
+
+```{r}
+orig_spls |>
+  mutate(phot_per_meas = nphots/nmeas) |>
+  filter(phot_per_meas > rcut) |>
+  arrange(phot_per_meas) |>
+  knitr::kable()
+```
+
+
+### Distributions for measurements
+
+
+Each channel has a variable number of measurements, and each measurement is composed of a time (measured in ticks) and a number of photons observed at that time.
+We have already seen that the distribution of the number of measurements per channel is approximately log-normal distributed, with a mean of approximately `r lucid(mean(orig_spls$nmeas))`.
+
+Next we consider the number of photons in each measurement.
+```{r}
+#| warning: false
+ggplot(orig_ticks, aes(nphot)) +
+  geom_histogram(bins=40) +
+  labs(x="Number of photons per measurement") +
+  scale_x_log10() +
+  scale_y_log10(labels=scales::number) +
+  theme_light()
+```
+
+```{r}
+nphot_cut <- 10
+many_phots <- filter(orig_ticks, nphot > nphot_cut)
+```
+
+The vast majority of measurements have a single photon.
+Of the `r nrow(orig_ticks)` measurements, only `r nrow(many_phots)` have more than `r nphot_cut` photons.
+
+```{r}
+divchannel <- 72
+```
+
+Are there variations by channel?
+```{r, cache = use_cache}
+#| fig-height: 10
+p1 <-
+  ggplot(orig_ticks, aes(x=nphot, y=factor(channel))) +
+  geom_boxplot() +
+  scale_x_log10() +
+  labs(x = "Number of photons per measurement on the channel", y = "channel") +
+  geom_hline(yintercept = divchannel, color="cyan") +
+  theme_light()
+print(p1)
+```
+
+Note that the lower channel numbers contain far fewer excursions into large number of photons per measurement, and also that the excursions they do have are smaller.
+Channel `r divchannel`, shown by the cyan line, seems to be the dividing line.
+
+We can make a plot for each event, to see if the same pattern is true of all events:
+
+```{r, cache = use_cache}
+#| fig-height: 10
+p1 +
+  facet_wrap(vars(event), ncol=2) + theme_light()
+```
+
+```{r, cache=use_cache}
+channels <-
+  group_by(orig_ticks, channel) |>
+  summarize(min_phot  = min(nphot),
+            med_phot  = median(nphot),
+            mean_phot = mean(nphot),
+            max_phot  = max(nphot),
+            nmeas     = n(),
+            sum_nphot = sum(nphot),
+            .groups = "drop")
+```
+
+
+A plot of the maximum number of photons per channel, across all measurements in all events, seems to show two different categories of channel.
+As with the plots above, the cyan line is drawn at channel = `r divchannel`.
+
+```{r}
+ggplot(channels, aes(channel, max_phot)) +
+  geom_point() +
+  scale_y_log10() +
+  geom_vline(xintercept = divchannel, color="cyan") +
+  labs(x="Channel id", y = "Maximum number of photons") +
+  theme_light()
+```
+

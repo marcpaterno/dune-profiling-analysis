@@ -1,0 +1,282 @@
+---
+title: "Profiling Work"
+subtitle: "in Preparation for Optimization with GPUs"
+author: "Marc Paterno"
+institute: "Fermi National Accelerator Laboratory"
+date: 23 Jan 2024
+date-format: long
+cache: true
+format:
+  html:
+    theme: plain
+  beamer:
+    theme: MFP
+    monofont: "Monaco"
+    pdf-engine: xelatex
+    mainfont: Geneva
+    aspectratio: 169
+---
+
+```{r, setup}
+library(tidyverse)
+source("functions.R")
+bmarks <- read_benchmark("benchmark_2024_01_06.txt")
+vtune <- read_vtune("vtune_data.csv")
+```
+
+## Why this work?
+
+* Goal is to accelerate DUNE physics processing using GPUs, for some algorithm in LArSoft.
+This aligns with the LArSoft "high priority" goal list.
+* Multi-step process:
+
+    #. Identify a likely candidate module from LArSoft.\footnote{Thank you to Tom Junk and Laura Paulucci for their guidance.}
+    #. Collect performance data to see where the code is taking the most time.
+    #. Improve the \alert{serial} algorithm performance.
+    #. \alert{Parallelize} the serial algorithm.
+    #. If the result is still insufficient, adapt the parallel algorithm for \alert{GPU usage}.
+* `PDFastSimPAR` was the clear most time-consuming module used in the DUNE workflows that is found in LArSoft.
+
+## Workflow based on a standard DUNE FD simulation workflows
+
+`lar` configurations using this module:
+
+* `prodbackground_radiological_decay0_dunevd10kt_1x8x14.fcl`
+* `prodmarley_nue_flat_radiological_decay0_dunevd10kt_1x8x14_` `3view_30deg.fcl`
+
+Geant4 simulation used as input:
+
+* `/pnfs/dune/persistent/users/lpaulucc/leprodtests/`
+  `prodradiological_decay0_dunevd10kt_1x8x14_gen.root`
+
+To make profiling data collection easier, I broke the workflow into two parts:
+
+* Everything \alert{before} the `PDFastSimPAR` module, which I write to an art/ROOT file, and
+* the `PDFastSimPAR` module run alone, on the output from the previous step.
+
+## Profiling data collection
+
+* I am using the Intel VTune performance analysis suite of tools.
+* Running a `prof` build on a SLF7 Linux machine.
+* Hardware is Skylake AVX512.
+* Standard `prof` build does \alert{not} activate the compiler options to make full use of the instruction set.
+Essentially no automatic vectorization is done.
+* VTune collects a huge amount of data; I run on only 1 event to keep the data analysis feasible.
+* Happily, previous analysis shows that the time taken to process events in the given file is very uniform.
+
+## First profiling results
+
+```{r, include=FALSE}
+run_01 <- filter(vtune, run==1)
+run_03 <- filter(vtune, run==3)
+```
+
+* Biggest hotspot in LArSoft code is `phot::fast_acos`, for a total of `r run_01[,"phot::fast_acos"]` seconds (out of `r run_01[1,"PDFastSimPAR::produce"]` seconds `PDFastSimPAR::produce`).
+* Called from two places within the code.
+
+## `phot::fast_acos`
+
+* Implementation from *Approximations for Digital Computers*, C. Hastings, Jr, published by Princeton University Press (1955), with flourishes that seem to be related to an implementation posted by NVIDIA.
+* Invented before the IEEE floating point standard was devised.
+* Not all computers at that time had instruction sets that included trig functions.
+* Do we need such a thing today?
+
+## Microbenchmarking results
+
+* Data collected on the same machine as used for VTune results.
+
+```{r, echo=FALSE}
+select(bmarks, -err) |>
+  filter(name %in% c("fast_acos", "acosd", "acosf")) |>
+  mutate(rel = t/bmarks$t[1]) |>
+  arrange(desc(rel)) |>
+  knitr::kable(digits = 3, col.names = c("ns/op", "ins/op", "branches/op", "name", "relative"))
+```
+
+* `fast_acos` is clearly faster than even the single-precision math library function.
+* Less time per operation, because of fewer instructions and fewer branches encountered.
+
+## `phot::fast_acos` shape of the curve
+
+```{r, include=FALSE}
+x <- read_tsv("acos.tsv")
+x <- mutate(x,
+            dfast = std-fast,
+            dhast = std-hastings,
+            dhast4 = std-hastings_4,
+            dhast5 = std-hastings_5,
+            fracdiff = abs(dfast)/std)
+```
+
+```{r, echo=FALSE}
+#| fig-height: 4.5
+ggplot(x) +
+  geom_line(mapping=aes(x, fast), color = "cyan", size=2.0) +
+  labs(x="x", y="fast_acos") +
+  theme_light()
+```
+
+## `phot::fast_acos` difference from C library
+
+```{r, echo = FALSE}
+#| fig-height: 4.5
+ggplot(x, aes(x, dfast)) +
+  geom_line(color="cyan", size=2.0) +
+  labs(x="x", y = "std::acos(double) - fast_acos") +
+  theme_light()
+```
+
+## `phot::fast_acos` relative difference from C library
+
+```{r, echo=FALSE}
+#| fig-height: 4.5
+ggplot(x, aes(x, fracdiff)) +
+  geom_line(color="cyan", size=2.0) +
+  labs(x="x", y="|fractional difference|") +
+  theme_light()
+```
+
+## Is `phot::fast_acos` sufficiently accurate?
+
+* If not, then replacing it with `std::acos` is trivial; the cost is a factor of 1.8 in the time taken for this operation.
+* If yes, then I have some modifications for you to consider...
+
+## New implementations
+
+* `hastings_acos` is the same algorithm, stripped of flourishes that make sense for GPUs but are counterproductive on CPUs.
+* `hastings_acos_4` is the same mathematical form with slightly improved constants.
+   This results in an improved approximation with identical instruction counts, branches, and execution time.
+* `hastings_acos_5` is a similar mathematical form, with one more term in the approximation.
+   It yields a still better approximation, at some cost in instruction counts and thus execution time.
+
+## Benchmarking results
+
+```{r, echo=FALSE}
+select(bmarks, -err) |>
+  filter(name %nin% c("ieee", "hastings_acos_obfuscated")) |>
+  mutate(rel = t/bmarks$t[1]) |>
+  arrange(desc(rel)) |>
+  knitr::kable(digits = 3, col.names = c("ns/op", "ins/op", "branches/op", "name", "relative"))
+```
+
+* The time difference between `hastings_acos` and `hastings_acos4` is not signficant.
+  The instruction counts and branch counts are the same; the generated assembly differs only in the values of the constants loaded into memory.
+  The difference in time reflects the precision with which `nanobench` can measure the code.
+
+## Comparison of absolute differences in calculated results
+
+```{r, echo=FALSE}
+#| fig-height: 4.5
+ggplot(x) +
+  geom_line(mapping=aes(x, dfast), color = "cyan", size=2.0) +
+  geom_line(mapping=aes(x, dhast), color = "black") +
+  geom_line(mapping=aes(x, dhast4), color = "magenta") +
+  geom_line(mapping=aes(x, dhast5), color = "red") +
+  labs(x="x",
+         y="cyan: fast_acos\nblack: hastings\nmagenta hastings_4\nred: hastings_5") +
+  theme_light()
+```
+
+## Comparison of absolute differences in calculated results
+
+```{r, echo=FALSE}
+#| fig-height: 4.5
+filter(x, -0.125 < x, x < 0.125) |>
+  ggplot() +
+  geom_line(mapping=aes(x, dfast), color = "cyan", size=2.0) +
+  geom_line(mapping=aes(x, dhast), color = "black") +
+  geom_line(mapping=aes(x, dhast4), color = "magenta") +
+  geom_line(mapping=aes(x, dhast5), color = "red") +
+  labs(x="x",
+         y="cyan: fast_acos\nblack: hastings\nmagenta hastings_4\nred: hastings_5") +
+  theme_light()
+```
+
+
+## VTune results
+
+* Numbers are (inclusive) times, in seconds, spent in the named function, for code using the given algorithm.
+
+```{r, echo=FALSE}
+vtune |>
+  mutate(algorithm=case_match(run,
+                              1~"fast_acos",
+                              3~"hastings_acos_4",
+                              4~"hastings_acos_5")) |>
+  select(-c("run", "type")) |>
+  select(algorithm, acos=`phot::fast_acos`, `PDFastSimPAR::produce`) |>
+  arrange(desc(acos)) |>
+  gt::gt()
+```
+
+## {.plain}
+
+:::{.r-stack}
+Backup slides.
+:::
+
+## {.plain}
+
+::::{.columns}
+:::{.column width=50%}
+```
+ double fast_acos(double x) {
+  double negate = double(x < 0.);
+  x = std::abs(x);
+  // following line is  min(1.,x)
+  x -= double(x > 1.) * (x - 1.);
+  double ret = -0.0187293;
+  ret = ret * x;
+  ret = ret + 0.0742610;
+  ret = ret * x;
+  ret = ret - 0.2121144;
+  ret = ret * x;
+  ret = ret + 1.5707288;
+  ret = ret * std::sqrt(1. - x);
+  ret = ret - 2. * negate * ret;
+  return negate * M_PI + ret;
+}
+```
+:::
+:::{.column width=50%}
+```
+double hastings_acos(double xin) {
+  double const x = std::abs(xin);
+  double const a0 =  1.5707288;
+  double const a1 = -0.2121144;
+  double const a2 =  0.0742610;
+  double const a3 = -0.0187293;
+  double ret = a3;
+  ret *= x;
+  ret += a2;
+  ret *= x;
+  ret += a1;
+  ret *= x;
+  ret += a0;
+  ret *= std::sqrt(1.0-x);
+  if (xin >= 0) return ret;
+  return M_PI - ret;
+}
+```
+:::
+::::
+
+## How I generated `hastings_acos_4` and `hastings_acos_5`
+
+* The functional form of all the "fast" algorithms is:
+
+$$
+\cos^{-1}{x} \approx \sqrt{1-x}  (a_0 + x(a_1 +x(a_2 + \ldots)))
+$$
+
+* The coefficients $a_i$ are found by minimizing $\Delta$:
+
+$$
+\Delta = \max |f(x)-\cos^{-1}(x)|, \quad \text{for $-1 \leq x \leq 1$}
+$$
+
+* The original algorithm has the fit parameters calculated in single precision.
+* `hastings_acos` has identical parameters but fewer operations & branches.
+* `hastings_acos_4` has fit parameters calcluated to double precsion, and is otherwise identical to `hastings_acos_4`.
+* `hastings_acos_5` uses 5 fit parameters calculated to double precsion.
+* Using 6 parameters yielded a slower algorithm but no better accuracy.

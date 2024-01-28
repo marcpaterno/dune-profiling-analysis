@@ -9,3 +9,4 @@ fast_acos_t
 *.pdf
 *_cache/
 *_files/
+physics_validation_data/
