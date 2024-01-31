@@ -149,7 +149,6 @@ orig_spls |>
 
 ### Distributions for measurements
 
-
 Each channel has a variable number of measurements, and each measurement is composed of a time (measured in ticks) and a number of photons observed at that time.
 We have already seen that the distribution of the number of measurements per channel is approximately log-normal distributed, with a mean of approximately `r lucid(mean(orig_spls$nmeas))`.
 
@@ -224,4 +223,56 @@ ggplot(channels, aes(channel, max_phot)) +
   labs(x="Channel id", y = "Maximum number of photons") +
   theme_light()
 ```
+
+The collection of measurements for each channel can be viewed as a series of measurements at specific times, with each measurement corresponding to a number of photons.
+Below are two channels, from a single event, showing the time profile. Channel 91 seems to contain only noise, and channel 92 seems to contain two signal pulses:
+
+```{r}
+orig_ticks |>
+  filter(event == 1,
+         channel %in% c(91, 92)) |>
+  ggplot(aes(time, nphot)) +
+  geom_point() +
+  labs(x="Time (ticks)", y="Number of photons") +
+  facet_wrap(vars(channel), ncol=1) +
+  theme_light()
+```
+
+If we choose 20 photons as a threshold above which we have a signal, rather than noise, candidate pulse, we can look at the distribution of the number of signal pulses per channel across all channels and events:
+
+```{r}
+orig_ticks |>
+  filter(nphot > 20) |>
+  group_by(run,subrun,event,channel) |>
+  summarize(n=n(), .groups="drop") |> 
+  ggplot(aes(n)) +
+  geom_histogram(bins=30) +
+  scale_x_log10() +
+  labs(x="Number of signal candidate pulses", "count") +
+  theme_light()
+```
+
+There is one extreme outlier in this distribution:
+```{r}
+ orig_ticks |>
+  filter(nphot > 20) |>
+  group_by(run,subrun,event,channel) |>
+  summarize(n=n(), .groups="drop") |>
+  filter(n>1000) |>
+  knitr::kable()
+```
+
+The signal on this channel looks like:
+
+```{r}
+orig_ticks |>
+  filter(event == 6,
+         channel == 108) |>
+  ggplot(aes(time, nphot)) +
+  geom_point() +
+  labs(x="Time (ticks)", y="Number of photons") +
+  scale_y_log10() +
+  theme_light()
+```
+
 
