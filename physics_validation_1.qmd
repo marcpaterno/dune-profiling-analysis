@@ -14,7 +14,6 @@ execute:
 ```{r setup, include=FALSE}
 library(tidyverse)
 library(lucid)
-source("functions.R")
 use_cache <- TRUE
 ```
 
@@ -27,19 +26,55 @@ It also serves to identify the particular quantities of interest to compare acro
 ### Data
 
 The data for this analysis is kept in the `physics_validation_data` directory.
+We'll create two data frames:
+
+#. `orig_channels` has one row per channel per event.
+   Each unique channel readout is identified by `eid` and `channel` numbers.
+   For each channel readout, we record the number of measurements on the channel, and the number of photons summed across all those measurements.
+
+#. `orig_meas` has one row per measurement on each channel in each event.
+   Each row is labeled with the `eid` and `channel` to which it belongs, and there are many rows per `eid` and `channel`.
+   Each row has the `time` and `nphot` from one measurement on that channel in that event.
 
 ```{r read_data, cache=use_cache}
-orig_spls <-
+#| warning: false
+orig_channels <-
   readr::read_tsv("physics_validation_data/spls_orig.tsv",
                   col_types = "iiiii")
-orig_ticks <-
+orig_meas <-
   readr::read_tsv("physics_validation_data/ticks_orig.tsv.xz",
                   col_types = "iiiiii")
 
+# Generate unique event ids "eid".
+# For some datasets this is trivial (we could have used just `event`), but that
+# is not true for all data sets. This is more robust.
 event_ids <-
-  orig_spls |>
+  orig_channels |>
   select(run, subrun, event) |>
-  unique()
+  unique() |>
+  mutate(eid = row_number())
+
+# Add the eid into the per-channel data frame, and remove the now redundant
+# columns run, subrun, event. Do the same for the per-measurement data frame.
+channels <-
+  left_join(orig_channels, event_ids) |>
+  select(eid, channel, nmeas) |>
+  mutate(eid = factor(eid), channel=factor(channel), nmeas = nmeas)
+meas <-
+  left_join(orig_meas, event_ids) |>
+  select(eid, channel, time, nphot) |>
+  mutate(eid = factor(eid), channel=factor(channel), time = time, nphot = nphot)
+
+# Get the number of photons summed across all measurements in for each channel in each event.
+tmp <-
+  group_by(meas, eid, channel) |>
+  summarize(nphots = sum(nphot), .groups="drop")
+
+channels <- inner_join(channels, tmp)
+rm(tmp)
+orig_channels <- channels
+orig_meas <- meas
+rm(channels, meas)
 ```
 
 ## Distributions from the original code
@@ -53,8 +88,8 @@ We see that each event has the same number of objects.
 Is this because this is the number of channels in the detector?
 
 ```{r}
-orig_spls |>
-  group_by(event) |>
+orig_channels |>
+  group_by(eid) |>
   summarise(nobj= n()) |>
   t() |>
   as.data.frame() |>
@@ -65,16 +100,16 @@ Next we look at the number of measurements in each `SimPhotonsLite` object in ea
 The events are all roughly similar in their distribution, but they are not identical:
 
 ```{r}
-ggplot(orig_spls, aes(nmeas)) +
+ggplot(orig_channels, aes(nmeas)) +
   geom_histogram(bins=40) +
-  facet_wrap(vars(event)) +
+  facet_wrap(vars(eid)) +
   labs(x="Number of measurements per channel") +
   theme_light()
 ```
 
 Because the events are similar, it may make sense to aggregate these data across all events:
 ```{r}
-ggplot(orig_spls, aes(nmeas)) +
+ggplot(orig_channels, aes(nmeas)) +
   geom_histogram(bins=40) +
   labs(x="Number of measurements per channel") +
   theme_light()
@@ -83,7 +118,7 @@ ggplot(orig_spls, aes(nmeas)) +
 This is an approximately log-normal distribution, as we can see by applying a log transform to the $x$ axis:
 
 ```{r}
-ggplot(orig_spls, aes(nmeas)) +
+ggplot(orig_channels, aes(nmeas)) +
   geom_histogram(bins=40) +
   labs(x="Number of measurements per channel") +
   scale_x_log10() +
@@ -92,16 +127,8 @@ ggplot(orig_spls, aes(nmeas)) +
 
 We can also summarize the number of photons for each channel (summed over all measurements for that channel):
 
-```{r, cache=use_cache}
-#| warning: false
-per_channel <-
-  group_by(orig_ticks, run, subrun, event, channel) |>
-  summarize(nphots = sum(nphot), .groups="drop")
-orig_spls <- inner_join(orig_spls, per_channel)
-```
-
 ```{r}
-ggplot(orig_spls, aes(nphots)) +
+ggplot(orig_channels, aes(nphots)) +
   geom_histogram(bins=40) +
   labs(x="Number of photons per channel") +
   scale_x_log10(labels=scales::number) +
@@ -111,7 +138,7 @@ ggplot(orig_spls, aes(nphots)) +
 Since there are extreme values for both number of measurements per channel and number of photons per channel, we might want to know if they are correlated:
 
 ```{r}
-ggplot(orig_spls, aes(nmeas, nphots)) +
+ggplot(orig_channels, aes(nmeas, nphots)) +
   scale_x_log10(labels=scales::number) +
   scale_y_log10(labels=scales::number) +
   geom_point(alpha=0.25) +
@@ -126,7 +153,7 @@ Note the log scales on both axes:
 ```{r}
 #| warning: false
 rcut <- 1.75
-ggplot(orig_spls, aes(x=nphots/nmeas)) +
+ggplot(orig_channels, aes(x=nphots/nmeas)) +
   geom_histogram(bins=40) +
   labs(x="Average photons per measurement for all channels") +
   scale_x_log10() +
@@ -139,7 +166,7 @@ There are very few channels that have an average of more than `r rcut` photons p
 Each such channel is listed in the table below.
 
 ```{r}
-orig_spls |>
+orig_channels |>
   mutate(phot_per_meas = nphots/nmeas) |>
   filter(phot_per_meas > rcut) |>
   arrange(phot_per_meas) |>
@@ -150,12 +177,12 @@ orig_spls |>
 ### Distributions for measurements
 
 Each channel has a variable number of measurements, and each measurement is composed of a time (measured in ticks) and a number of photons observed at that time.
-We have already seen that the distribution of the number of measurements per channel is approximately log-normal distributed, with a mean of approximately `r lucid(mean(orig_spls$nmeas))`.
+We have already seen that the distribution of the number of measurements per channel is approximately log-normal distributed, with a mean of approximately `r lucid(mean(orig_channels$nmeas))`.
 
 Next we consider the number of photons in each measurement.
 ```{r}
 #| warning: false
-ggplot(orig_ticks, aes(nphot)) +
+ggplot(orig_meas, aes(nphot)) +
   geom_histogram(bins=40) +
   labs(x="Number of photons per measurement") +
   scale_x_log10() +
@@ -165,11 +192,11 @@ ggplot(orig_ticks, aes(nphot)) +
 
 ```{r}
 nphot_cut <- 10
-many_phots <- filter(orig_ticks, nphot > nphot_cut)
+many_phots <- filter(orig_meas, nphot > nphot_cut)
 ```
 
 The vast majority of measurements have a single photon.
-Of the `r nrow(orig_ticks)` measurements, only `r nrow(many_phots)` have more than `r nphot_cut` photons.
+Of the `r nrow(orig_meas)` measurements, only `r nrow(many_phots)` have more than `r nphot_cut` photons.
 
 ```{r}
 divchannel <- 72
@@ -179,7 +206,7 @@ Are there variations by channel?
 ```{r, cache = use_cache}
 #| fig-height: 10
 p1 <-
-  ggplot(orig_ticks, aes(x=nphot, y=factor(channel))) +
+  ggplot(orig_meas, aes(x=nphot, y=factor(channel))) +
   geom_boxplot() +
   scale_x_log10() +
   labs(x = "Number of photons per measurement on the channel", y = "channel") +
@@ -196,12 +223,12 @@ We can make a plot for each event, to see if the same pattern is true of all eve
 ```{r, cache = use_cache}
 #| fig-height: 10
 p1 +
-  facet_wrap(vars(event), ncol=2) + theme_light()
+  facet_wrap(vars(eid), ncol=2) + theme_light()
 ```
 
 ```{r, cache=use_cache}
 channels <-
-  group_by(orig_ticks, channel) |>
+  group_by(orig_meas, channel) |>
   summarize(min_phot  = min(nphot),
             med_phot  = median(nphot),
             mean_phot = mean(nphot),
@@ -225,11 +252,12 @@ ggplot(channels, aes(channel, max_phot)) +
 ```
 
 The collection of measurements for each channel can be viewed as a series of measurements at specific times, with each measurement corresponding to a number of photons.
-Below are two channels, from a single event, showing the time profile. Channel 91 seems to contain only noise, and channel 92 seems to contain two signal pulses:
+Below are two channels, from a same event, showing the time profile.
+Channel 91 seems to contain only noise, and channel 92 seems to contain two signal pulses:
 
 ```{r}
-orig_ticks |>
-  filter(event == 1,
+orig_meas |>
+  filter(eid == 1,
          channel %in% c(91, 92)) |>
   ggplot(aes(time, nphot)) +
   geom_point() +
@@ -240,11 +268,15 @@ orig_ticks |>
 
 If we choose 20 photons as a threshold above which we have a signal, rather than noise, candidate pulse, we can look at the distribution of the number of signal pulses per channel across all channels and events:
 
-```{r}
-orig_ticks |>
+```{r, cache=use_cache}
+signal_pulses_per_channel <-
+  orig_meas |>
   filter(nphot > 20) |>
-  group_by(run,subrun,event,channel) |>
-  summarize(n=n(), .groups="drop") |> 
+  group_by(eid, channel) |>
+  summarize(n=n(), .groups="drop")
+```
+```{r}
+signal_pulses_per_channel |> 
   ggplot(aes(n)) +
   geom_histogram(bins=30) +
   scale_x_log10() +
@@ -254,10 +286,7 @@ orig_ticks |>
 
 There is one extreme outlier in this distribution:
 ```{r}
- orig_ticks |>
-  filter(nphot > 20) |>
-  group_by(run,subrun,event,channel) |>
-  summarize(n=n(), .groups="drop") |>
+signal_pulses_per_channel |>
   filter(n>1000) |>
   knitr::kable()
 ```
@@ -265,9 +294,9 @@ There is one extreme outlier in this distribution:
 The signal on this channel looks like:
 
 ```{r}
-orig_ticks |>
-  filter(event == 6,
-         channel == 108) |>
+channel_6_108 <- filter(orig_meas, eid==6, channel == 108)
+
+channel_6_108 |>
   ggplot(aes(time, nphot)) +
   geom_point() +
   labs(x="Time (ticks)", y="Number of photons") +
@@ -275,4 +304,18 @@ orig_ticks |>
   theme_light()
 ```
 
+We have to zoom in on a small range of time to see the many large measurements:
 
+```{r}
+t0 <- 2674500
+t1 <- 2675500
+channel_6_108 |>
+  filter(t0 < time, time < t1) |>
+  ggplot(aes(time, nphot)) +
+  geom_point() +
+  scale_y_log10()+
+  labs(x="Time (ticks)", y="Number of photons") +
+  theme_light()
+```
+
+This single readout seems to contain a huge tail of samples with a count above 30, after a spike that went all the up past 3000 photons.
