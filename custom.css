@@ -1,0 +1,20 @@
+.title {
+  color: darkblue;
+  font-size: 3em;
+}
+
+body {
+  font-size: 100%;
+}
+h1 {
+  font-size: 2em;
+}
+
+h2 {
+  font-size: 1.4em;
+}
+
+.cell-output-display p {
+  color: red;
+  text-align: center;
+}
