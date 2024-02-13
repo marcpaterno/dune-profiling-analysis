@@ -1,0 +1,158 @@
+---
+title: "Physics Validation: 2 of N"
+author: "Marc Paterno"
+date: last-modified
+format:
+  html:
+    css: custom.css
+    toc: true
+    code-overflow: wrap
+    theme: tufte
+    grid:
+      margin-width: 350px
+reference-location: margin
+citation-location: margin
+
+execute: 
+  echo: false
+---
+```{r setup, include=FALSE}
+library(tidyverse)
+library(lucid)
+library(cowplot)
+source("functions.R")
+use_cache <- TRUE
+knitr::opts_chunk$set(
+  include=TRUE,
+  echo=FALSE,
+  message=FALSE,
+  warning=FALSE
+  )
+```
+
+# Purpose
+
+This document shows some comparisons of the output of `PDFasSimPAR` depending upon the implementation of the `fast_acos` function.
+We consider 4 different cases:
+
+#. The original algorithm, as of tag v09_38_06.
+#. The `hastings_acos4` algorithm
+#. The `hastings_acos5` algorithm
+#. The standard library "exact" algorithm for the $acos$ function.
+
+I have verified that the `SimPhotonsLite` objects output by `PDFastSimPAR` are reproducible; the dumped data from different executions of the original code are identical.
+In addition, the output from using the `hastings_acos` algorithm are identical to the output of the original code.
+
+```{r read_data, cache=use_cache}
+run_names <- c("acosd", "acos4", "acos5", "orig")
+channels_files <- list.files(path="physics_validation_data", pattern=glob2rx("channels*.tsv"), full.names=TRUE)
+measurements_files <- list.files(path="physics_validation_data", pattern=glob2rx("measurements*.tsv.xz"), full.names = TRUE)
+channels <- lapply(channels_files, read_channel_data)
+measurements <- lapply(measurements_files, read_measurement_data)
+names(channels) <- run_names
+names(measurements) <- run_names
+channels <- bind_rows(channels, .id = "alg")
+channels$alg <- factor(channels$alg, levels=c("acosd","orig", "acos4", "acos5"), ordered=TRUE)
+measurements <- bind_rows(measurements, .id = "alg")
+chs <- pivot_wider(channels, id_cols=c(run, subrun, event,channel),names_from=alg, values_from=nmeas)
+chs <- mutate(chs,
+              d4 = acos4-acosd,
+              d5 = acos5-acosd,
+              do = orig-acosd)
+```
+
+# Comparisons of counts of photons on channels
+
+The most direct comparison of these data is a plot of the correlation between the output when using each of the approximate algorithms with the output when using the exact algorithm.
+This is shown in @fig-correlation_plot.
+
+```{r}
+#| label: fig-correlation_plot
+#| fig-asp: 1.0
+#| fig-cap-location: margin
+#| fig-cap: "Correlation of the number of photons per channel for each channel and event.
+#| The horizontal axis always shows the exact (`acosd`) implementation; the panels show one of `hastings_acos_4`, `hastings_acos_5`, or the original `fast_acos` implementation.
+#| The correlation is very high for each case, making the result difficult to discriminate in this plot."
+p1a <- ggplot(chs, aes(x=acosd, y=acos4)) + geom_point(alpha=0.5)
+p1b <- ggplot(chs, aes(x=acosd, y=acos5)) + geom_point(alpha=0.5)
+p1c <- ggplot(chs, aes(x=acosd, y=orig)) + geom_point(alpha=0.5)
+plot_grid(p1c, p1a, p1b)
+```
+
+We can try to observe more structure by looking at deviations from exact corrlation, as a function of the count of photons resulting from the exact algorithm.
+This is shown in @fig-flattened_correlation.
+
+```{r}
+#| label: fig-flattened_correlation
+#| fig-cap-location: margin
+#| fig-cap: "Deviation from exact corrlation in the number of photons per channel for each channel and each event.
+#| The distribution seems to be the thinnest for `acos5`, and widest for `orig`, but the effect is small."
+#| 
+p2a <- ggplot(chs, aes(x=acosd, y=acos4-acosd)) + geom_point(alpha=0.25) + ylim(-65, 65) + ylab("acos4")
+p2b <- ggplot(chs, aes(x=acosd, y=acos5-acosd)) + geom_point(alpha=0.25) + ylim(-65, 65) + ylab("acos5")
+p2c <- ggplot(chs, aes(x=acosd, y=orig-acosd)) + geom_point(alpha=0.25) + ylim(-65, 65) + ylab("orig")
+plot_grid(p2c, p2a, p2b, ncol=1)
+
+```
+
+The gross distribution of the number of photons observed per channel does not show any significant differences for the different algorithms.
+These distributions are shown in @fig-photon_counts_histograms.
+
+```{r}
+#| label: fig-photon_counts_histograms
+#| fig-cap-location: margin
+#| fig-cap: "Distribution of the number of photons per channel for each channel and event.
+#| Note the log axes for both axes.
+#| The label at the top of each panel shows the algorithm corresponding to that distribution.
+#| The distributions differ very little."
+ggplot(channels, aes(nmeas)) +
+  geom_histogram(bins=30) +
+  facet_wrap(vars(alg), ncol=1) +
+  scale_y_continuous(trans="log1p") +
+  scale_x_log10() +
+  xlab("Number of photons per channel")
+```
+
+# Comparisons of detailed measurement data
+
+I am not sure how to sensibly characterize this great bulk of data, without subjecting it to the complex reconstruction algorithms used to process `SimPhotonsLite` objects.
+One simple thing to do is to look at the channel in the event with the largest number of photons observed: event 6, channel 108.
+These data are shown in @fig-full_signal.
+
+```{r big_channel, cache=use_cache}
+channel_6_108 <- filter(measurements, event==6, channel==108)
+```
+
+```{r}
+#| label: fig-full_signal
+#| fig-cap-location: margin
+#| fig-cap: "Signal in event 6, channel 108, the busiest channel in the set of events.
+#| Tne scale of noise and location of possible signal peaks are similar for all algorithms."
+channel_6_108 |>
+  ggplot(aes(time, nphot)) +
+  geom_point() +
+  facet_wrap(vars(alg)) +
+  scale_y_log10() +
+  labs(x="Time (ticks)", y="Number of photons")
+```
+
+Each of these signal forms shows a large peak on the far right side.
+We can zoom in to show the more detailed structure; this is shown in @fig-signal_detail.
+
+```{r}
+#| label: fig-signal_detail
+#| fig-cap-location: margin
+#| fig-cap: "Main peak region for the signal in event 6, channel 108, the busiest channel in the set of events.
+#| The location and shape of the peaks are very similar, but the details of the noise varies."
+t0 <- 2674900
+t1 <- 2675500
+channel_6_108 |>
+  filter(t0 < time, time < t1) |>
+  ggplot(aes(time, nphot)) +
+  geom_line() +
+  scale_y_log10() +
+  xlim(t0, t1) +
+    labs(x="Time (ticks)", y="Number of photons") +
+  facet_wrap(vars(alg), ncol=1)
+```
+
