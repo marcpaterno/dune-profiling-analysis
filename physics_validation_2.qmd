@@ -92,8 +92,43 @@ p2a <- ggplot(chs, aes(x=acosd, y=acos4-acosd)) + geom_point(alpha=0.25) + ylim(
 p2b <- ggplot(chs, aes(x=acosd, y=acos5-acosd)) + geom_point(alpha=0.25) + ylim(-65, 65) + ylab("acos5")
 p2c <- ggplot(chs, aes(x=acosd, y=orig-acosd)) + geom_point(alpha=0.25) + ylim(-65, 65) + ylab("orig")
 plot_grid(p2c, p2a, p2b, ncol=1)
-
 ```
+
+If we bin these data in $x$ (the number of photons found when using the `acosd` algorithm), we can show a box-and-whisker plot for each bin, which shows how the width of the distribution varies:
+
+```{r}
+#| label: fig-flattened_correlation_box
+#| fig-column: page-right
+#| fig-width: 12
+#| fig-height: 8
+#| fig-cap: "Deviation from exact corrlation in the number of photons per channel for each channel and each event, binned by the value of `acosd`.
+#| This shows the variation in the spread of the distributions as it varies with `acosd`."
+#| 
+aug <- augment_bins(chs, acosd, 25)
+p3a <- ggplot(aug, aes(x=acosd_median, y=d4, group=acosd_bin)) + geom_boxplot(outlier.shape=NA, coef=0) + ylim(-6, 6) + labs(x="acosd", y = "acos4")
+p3b <- ggplot(aug, aes(x=acosd_median, y=d5, group=acosd_bin)) + geom_boxplot(outlier.shape=NA, coef=0) + ylim(-6, 6) + labs(x="acosd", y= "acos5")
+p3c <- ggplot(aug, aes(x=acosd_median, y=do, group=acosd_bin)) + geom_boxplot(outlier.shape=NA, coef=0) + ylim(-6, 6) + labs(x="acosd", y="orig")
+plot_grid(p3c, p3a, p3b, ncol=1)
+```
+
+This plot still does not make it easy to observe the variation in width of the distrubtion and how it varies with the value of `acosd`.
+
+```{r}
+#| label: fig-box_widths
+#| fig-cap-location: margin
+#| fig-cap: "Spread of the values shown in the box plot bins in @fig-flattened_correlation_box.
+#| The line labeled `do` corresponds to the results using the original `fast_acos` algorithm; `d4` corresponds to `hastings_acos4` and `d5` corresponds to `hastings_acos5`.
+#| From this we can more clearly see that the `hastings_acos5` algorithm yields the smallest variances from the exact algorith, and that the difference between the original algorithm and `hastings_acos4` are small."
+#| 
+aug |>
+  group_by(acosd_bin, acosd_median) |>
+  summarize(do = IQR(do), d4=IQR(d4), d5=IQR(d5), .groups="drop") |>
+  pivot_longer(cols=c(do, d4, d5), names_to="alg", values_to="width")  |>
+  ggplot(aes(acosd_median, width, color=alg)) +
+  geom_line() +
+  geom_point()
+```
+
 
 The gross distribution of the number of photons observed per channel does not show any significant differences for the different algorithms.
 These distributions are shown in @fig-photon_counts_histograms.
