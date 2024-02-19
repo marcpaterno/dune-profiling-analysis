@@ -116,6 +116,7 @@ make_analysis_dataframes <- function(orig_channels, orig_meas)
 
   channels <- inner_join(channels, tmp)
   list(channels = channels, meas = meas)
+}
 
 #' Augment a dataframe with columns to allow plotting of conditioned box plots.
 #'
@@ -145,4 +146,23 @@ augment_bins <- function(df, var, nbins=25)
   names(tmp)[length(tmp)-1] <- paste0(vname, "_bin")
   tmp
 }
+
+read_dataframes <- function()
+{
+  run_names <- c("acosd", "acos4", "acos5", "orig")
+  channels_files <- list.files(path="physics_validation_data", pattern=glob2rx("channels*.tsv"), full.names=TRUE)
+  measurements_files <- list.files(path="physics_validation_data", pattern=glob2rx("measurements*.tsv.xz"), full.names = TRUE)
+  channels <- lapply(channels_files, read_channel_data)
+  measurements <- lapply(measurements_files, read_measurement_data)
+  names(channels) <- run_names
+  names(measurements) <- run_names
+  channels <- bind_rows(channels, .id = "alg")
+  channels$alg <- factor(channels$alg, levels=c("acosd","orig", "acos4", "acos5"), ordered=TRUE)
+  measurements <- bind_rows(measurements, .id = "alg")
+  chs <- pivot_wider(channels, id_cols=c(run, subrun, event,channel),names_from=alg, values_from=nmeas)
+  chs <- mutate(chs,
+                d4 = acos4-acosd,
+                d5 = acos5-acosd,
+                do = orig-acosd)
+  list(channels=chs, measurements=measurements)
 }

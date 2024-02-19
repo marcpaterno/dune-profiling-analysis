@@ -1,0 +1,52 @@
+---
+title: "Censeo autem, tabulae delendae sunt"
+subtitle: "with apologies to Marcus Portius Cato"
+author: "Marc Paterno"
+institute: "Fermi National Accelerator Laboratory"
+date: "?? March 2024"
+date-format: long
+cache: true
+format:
+  beamer:
+    theme: MFP
+    monofont: "Monaco"
+    pdf-engine: xelatex
+    mainfont: Georgia
+    urlcolor: blue
+    aspectratio: 169
+---
+
+```{r, setup}
+library(tidyverse)
+source("functions.R")
+```
+
+## Prologue
+
+* I have presented performance improvement possible by replacing `fast_acosd` approximate calculation of $\cos^{-1}(x)$.
+
+    * `std::acos(double)` (considerably slower, but closes to exact calculation)
+    * `fast_acos` (what `PDFastSimPAR` uses now)
+    * `hastings_acos` (44% faster than `fast_acos`, identical output)
+    * `hastings_acos_4` (same speed as `hastings_acos`, better approximation)
+    * `hastings_acs_5` (33% faster than `fast_acos`, much better approximation)
+
+* This time, I will show comparisons between the output of `PDFastSimPAR` using the different algorithms.
+
+## `sim::SimPhotonsLite`
+
+* The output of `PDFastSimPAR`, in the configurations of the workflows used by DUNE, consists of `std::vector<sim::SimPhotonsLite>` (henceforth `SPL`) objects.
+* Each element in the `vector` represents data for a _channel_.
+* The data for each _channel_ are a channel ID and a record of a time series of measurements.
+* The series of measurements for a channel is recorded as an `std::map<int,int>`.
+    * The first `int` (the key) represents a time, measured in _ticks_.
+    * the second `int` (the value) represents a count of photons observed at that time.
+
+## Comparison of results
+
+* To determine the effect of using the different algorithms for $cos^{-1}(x)$, I compare the results from using the "exact" result of `std::acos` to the results from using the different fast approximations.
+* In order _not_ to confound the comparison with the effect of other complicated algorithms, I have looked at direct displays and comparisons of (distributions of) the `PDFastSimPAR` output.
+* I will present several different comparisons.
+* Some additional detail [is available online](https://rpubs.com/paterno/pdfastsimpar_2_of_n).
+
+## 
