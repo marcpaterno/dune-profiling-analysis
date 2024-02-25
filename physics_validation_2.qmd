@@ -20,6 +20,7 @@ execute:
 library(tidyverse)
 library(lucid)
 library(cowplot)
+library(mfptools)
 source("functions.R")
 use_cache <- TRUE
 knitr::opts_chunk$set(
@@ -44,21 +45,11 @@ I have verified that the `SimPhotonsLite` objects output by `PDFastSimPAR` are r
 In addition, the output from using the `hastings_acos` algorithm are identical to the output of the original code.
 
 ```{r read_data, cache=use_cache}
-run_names <- c("acosd", "acos4", "acos5", "orig")
-channels_files <- list.files(path="physics_validation_data", pattern=glob2rx("channels*.tsv"), full.names=TRUE)
-measurements_files <- list.files(path="physics_validation_data", pattern=glob2rx("measurements*.tsv.xz"), full.names = TRUE)
-channels <- lapply(channels_files, read_channel_data)
-measurements <- lapply(measurements_files, read_measurement_data)
-names(channels) <- run_names
-names(measurements) <- run_names
-channels <- bind_rows(channels, .id = "alg")
-channels$alg <- factor(channels$alg, levels=c("acosd","orig", "acos4", "acos5"), ordered=TRUE)
-measurements <- bind_rows(measurements, .id = "alg")
-chs <- pivot_wider(channels, id_cols=c(run, subrun, event,channel),names_from=alg, values_from=nmeas)
-chs <- mutate(chs,
-              d4 = acos4-acosd,
-              d5 = acos5-acosd,
-              do = orig-acosd)
+res <- read_dataframes()
+channels <- res$channels
+measurements <- res$measurements
+chs <- res$chs
+rm(res)
 ```
 
 # Comparisons of counts of photons on channels
