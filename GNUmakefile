@@ -7,7 +7,7 @@ PDF_FILES = $(patsubst %.qmd,%.pdf, $(QMD_FILES))
 
 all: pdf
 
-pdf: paterno-xx-yy-2024.pdf
+pdf: paterno-26-02-2024.pdf
 
 .qmd.pdf:
 	quarto render $< --to beamer

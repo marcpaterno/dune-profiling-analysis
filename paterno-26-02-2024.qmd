@@ -1,6 +1,5 @@
 ---
-title: "Censeo autem, tabulae delendae sunt"
-subtitle: "with apologies to Marcus Portius Cato"
+title: "Physics validation of changes to `PDFastSimPAR`"
 author: "Marc Paterno"
 institute: "Fermi National Accelerator Laboratory"
 date: "?? March 2024"
@@ -19,6 +18,7 @@ format:
 ```{r, setup}
 library(tidyverse)
 source("functions.R")
+use_cache <- FALSE
 ```
 
 ## Prologue
@@ -49,4 +49,32 @@ source("functions.R")
 * I will present several different comparisons.
 * Some additional detail [is available online](https://rpubs.com/paterno/pdfastsimpar_2_of_n).
 
-## 
+```{r read_data, cache=use_cache}
+res <- read_dataframes()
+channels <- res$channels
+measurements <- res$measurements
+chs <- res$chs
+rm(res)
+```
+
+## Censeo autem, tabulae delendae sunt
+
+* My next step in optimization is the parallelisation of the processing.
+* *With apologies to Marcus Portius Cato*
+
+## What does a `std::map` look like in memory?
+
+```{dot}
+digraph G
+{
+  layout = dot;
+  rb_tree -> nd;
+  nd -> color;
+  nd -> parent;
+  nd -> left;
+  nd -> right;
+  nd -> key;
+  nd -> value;
+}
+```
+
