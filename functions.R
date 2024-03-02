@@ -139,5 +139,5 @@ read_dataframes <- function()
                   d4 = acos4 - acosd,
                   d5 = acos5 - acosd,
                   do = orig - acosd) 
-    list(channels=chs, measurements=measurements)
+    list(channels=channels, measurements=measurements, chs=chs)
 }

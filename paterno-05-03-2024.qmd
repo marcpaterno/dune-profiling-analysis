@@ -3,7 +3,7 @@ title: "Physics validation of changes to `PDFastSimPAR`"
 subtitle: "And what comes next"
 author: "Marc Paterno"
 institute: "Fermi National Accelerator Laboratory"
-date: "26 Feb 2024"
+date: "5 Mar 2024"
 date-format: long
 format:
   beamer:
@@ -25,6 +25,9 @@ use_cache <- FALSE
 
 ## Prologue
 
+* I have been working on improving the speed of the `PDFastSimPAR` module.
+  This module does a fast simulation of propagation of the photons created from `SimEnergyDeposits`, "Semi-Analytical model", which stores the visibilities of each optical channel with respect to each optical voxel in the TPC volume, to avoid propagating single photons using Geant.
+
 * I have presented performance improvement possible by replacing `fast_acosd` approximate calculation of $\cos^{-1}(x)$.
 
     * `std::acos(double)` (considerably slower, but closes to exact calculation)
@@ -32,9 +35,12 @@ use_cache <- FALSE
     * `hastings_acos` (44% faster than `fast_acos`, identical output)
     * `hastings_acos_4` (same speed as `hastings_acos`, better approximation)
     * `hastings_acs_5` (33% faster than `fast_acos`, much better approximation)
+    
+## Today's goal
 
 * This time, I will show comparisons between the output of `PDFastSimPAR` using the different algorithms.
 * Goal: to decide which $\cos^{-1}(x)$ algorithm is most appropriate to use in this context.
+* I will fininsh with a description of my next plans.
 
 ## `sim::SimPhotonsLite`
 
@@ -115,8 +121,9 @@ filter(measurements, event==6, channel==108) |>
 
 * Which of the trigonometic algorithms used makes very little difference to the output of `PDFastSimPAR`.
 * Since the original (and least accurate) approximation has been adequate, it does not seem that a more accurate approximation is required.
-* Both `hastings_acos` and `hastings_acos_4` have identical speed, and are about 44% faster than the current algorithm.
+* Both `hastings_acos` and `hastings_acos_4` have identical speed, and are about 44% faster than the current `fast_acos`.
 * It seems to me that one of these two would be the best choice.
+* Either will save about 4 seconds per event.
 
 ## Next step 
 
@@ -130,16 +137,18 @@ filter(measurements, event==6, channel==108) |>
 
 ::::{.columns}
 :::{.column width=65%}
-![](map_diagram.pdf){width=100%}
-`rb` = *red/black* (`char`); `ky` = key (`int`); `va` = value (`int`)
+![](map_int_int.drawio.pdf){width=100%}
+`color` = *red/black* (`char`);
+`key` = tick (`int`); `value` = nphotons (`int`)
 :::
 :::{.column width=35%}
-* For `SPL`, the size of each node is probably 36 bytes (including padding); of this 8 bytes are the data `ky` and `va` (more than 75% of the space is overhead).
+* For `SPL`, the size of each node is 36 bytes (including padding); of this 8 bytes are the data `key` and `value` (more than 75% of the space is overhead).
 * The nodes are distributed all around memory.
 * The typical `map` (channel) has about 3000 such nodes.
-* Each `vector<SPL>` requires about 500,000 allocations and deallocations.
+* Each `vector<SPL>` requires about $5 \times 10^5$ `new`s and `delete`s.
 :::
 ::::
+
 
 ## What would be a more efficient data structure?
 
