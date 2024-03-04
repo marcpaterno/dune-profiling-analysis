@@ -28,5 +28,5 @@ clean:
 january-2024.pdf: vtune_data.csv benchmark_2024_01_06.txt
 paterno-23-01-2024.pdf: vtune_data.csv benchmark_2024_01_06.txt
 paterno-26-02-2024.pdf: paterno-26-02-2024.qmd map_diagram.pdf
-paterno-05-03-2024.pdf: paterno-05-03-2024.qmd map_diagram.pdf
+paterno-05-03-2024.pdf: paterno-05-03-2024.qmd map_int_int.drawio.pdf
 
