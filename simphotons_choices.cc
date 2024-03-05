@@ -1,5 +1,6 @@
 // Test program to benchmark different choices for SimPhotons implementation.
 //
+#include <algorithm>
 #include <iostream>
 #include <map>
 #include <random>
@@ -13,6 +14,7 @@ struct sp2 {
 };
 
 // Iterate through all values in map; we don't look at the keys.
+__attribute__((noinline))
 std::size_t
 sum(std::map<int, int> const& m)
 {
@@ -23,6 +25,7 @@ sum(std::map<int, int> const& m)
 }
 
 // Iterate through all values in struct; we don't look at the keys.
+__attribute__((noinline))
 std::size_t
 sum(sp2 const& s)
 {
@@ -36,10 +39,11 @@ template <typename S>
 void
 run_sum(ankerl::nanobench::Bench* bench, S const& m, const char* name)
 {
-  bench->run(name, [&m]() {
-    auto s = sum(m);
-    ankerl::nanobench::doNotOptimizeAway(s);
+  std::size_t s = 0;
+  bench->run(name, [&]() {
+    s = sum(m);
   });
+  ankerl::nanobench::doNotOptimizeAway(s);
 }
 
 int
