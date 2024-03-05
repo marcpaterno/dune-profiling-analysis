@@ -30,3 +30,6 @@ target_link_libraries(fast_atan_t PRIVATE nanobench)
 add_executable(omega_t omega_t.cc)
 target_link_libraries(omega_t PRIVATE nanobench)
 
+add_executable(simphotons_choices simphotons_choices.cc)
+target_link_libraries(simphotons_choices PRIVATE nanobench)
+
