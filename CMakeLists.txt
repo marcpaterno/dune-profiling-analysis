@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20.0)
 project(duneprofiling VERSION 0.0.0 LANGUAGES CXX)
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED On)
 set(CMAKE_CXX_EXTENSIONS Off)
 
@@ -21,6 +21,13 @@ FetchContent_Declare(
   GIT_SHALLOW TRUE)
 FetchContent_MakeAvailable(nanobench)
 
+FetchContent_Declare(
+  fmt
+  GIT_REPOSITORY https://github.com/fmtlib/fmt.git
+  GIT_TAG 10.2.1
+  GIT_SHALLOW TRUE)
+FetchContent_MakeAvailable(fmt)
+
 add_executable(fast_acos_t fast_acos_t.cc ieee_acos.cc)
 target_link_libraries(fast_acos_t PRIVATE nanobench)
 
@@ -31,5 +38,5 @@ add_executable(omega_t omega_t.cc)
 target_link_libraries(omega_t PRIVATE nanobench)
 
 add_executable(simphotons_choices simphotons_choices.cc)
-target_link_libraries(simphotons_choices PRIVATE nanobench)
+target_link_libraries(simphotons_choices PRIVATE nanobench fmt)
 
