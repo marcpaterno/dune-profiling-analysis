@@ -28,9 +28,8 @@ FetchContent_Declare(
   GIT_SHALLOW TRUE)
 FetchContent_MakeAvailable(fmt)
 
-add_library(sum_functions sum_functions.cc)
-
-add_library(fill_functions fill_functions.cc)
+add_library(sum_functions SHARED sum_functions.cc)
+add_library(fill_functions SHARED fill_functions.cc)
 
 add_executable(fast_acos_t fast_acos_t.cc ieee_acos.cc)
 target_link_libraries(fast_acos_t PRIVATE nanobench)
