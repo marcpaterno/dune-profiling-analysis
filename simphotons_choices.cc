@@ -35,6 +35,7 @@ main()
     .minEpochIterations(150 * 1000);
 
   std::array<std::size_t, 7> NM = { 10ULL, 30ULL, 100ULL, 300ULL, 1000ULL, 3000ULL, 10000ULL };
+  std::ranges::reverse(NM);
 
   std::map<int, int> sp_orig;
   sp2 sp_new;
@@ -42,6 +43,9 @@ main()
 
   for (auto n : NM) {
     std::string suffix = std::to_string(n);
+    sp_orig = std::map<int,int>();
+    sp_new = sp2();
+    hashmap = std::unordered_map<int, int>();
     fill(sp_orig, n);
     fill(sp_new, n);
     fill(hashmap, n);
