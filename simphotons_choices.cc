@@ -40,6 +40,7 @@ main()
   std::map<int, int> sp_orig;
   sp2 sp_new;
   std::unordered_map<int, int> hashmap;
+  sp_pairs pairs;
 
   for (auto n : NM) {
     std::string suffix = std::to_string(n);
@@ -49,9 +50,11 @@ main()
     fill(sp_orig, n);
     fill(sp_new, n);
     fill(hashmap, n);
+    fill(pairs, n);
 
     run_sum(&b, sp_orig, n, fmt::format("sum_map_{}", suffix));
     run_sum(&b, sp_new, n, fmt::format("sum_sp2_{}", suffix));
     run_sum(&b, hashmap, n, fmt::format("sum_hashmap_{}", suffix));
+    run_sum(&b, pairs, n, fmt::format("sum_pairs_{}", suffix));
   }
 }

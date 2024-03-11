@@ -3,6 +3,7 @@
 #include <map>
 #include <unordered_map>
 #include <vector>
+#include "sp_pairs.hh"
 
 struct sp2;
 
@@ -10,3 +11,4 @@ struct sp2;
 int sum(std::map<int, int> const& m);
 int sum(sp2 const& s);
 int sum(std::unordered_map<int, int> const& m);
+int sum(sp_pairs const& s);

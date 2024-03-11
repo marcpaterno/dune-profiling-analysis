@@ -1,0 +1,44 @@
+---
+title: "Data Structure Profiling"
+author: "Marc Paterno"
+date: last-modified
+format:
+  html:
+    css: custom.css
+    toc: true
+    code-overflow: wrap
+    theme: tufte
+    grid:
+      margin-width: 350px
+reference-location: margin
+citation-location: margin
+
+execute: 
+  echo: false
+---
+```{r setup, include=FALSE}
+library(tidyverse)
+library(lucid)
+library(cowplot)
+library(mfptools)
+source("functions.R")
+use_cache <- TRUE
+knitr::opts_chunk$set(
+  include=TRUE,
+  echo=FALSE,
+  message=FALSE,
+  warning=FALSE
+  )
+```
+
+# Purpose
+
+This document describes the microbenchmarking work I have done to help choose between possible data structures to use for the `SimPhotonsLite` class.
+
+# Contenders for the design.
+
+The original design for `SimPhotonsLite` is a `std::map<int, int>`.
+Possible contenders for a redesign include:
+
+#. a `struct` containing two `std::vector<int>` instances. I call this `sp2`.
+#. `std::unordered_map<int, int>`. I call this `hashmap`.
