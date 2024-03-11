@@ -1,11 +1,3 @@
-Warning, results might be unstable:
-* CPU frequency scaling enabled: CPU 0 between 800.0 and 3,000.0 MHz
-* CPU governor is 'powersave' but should be 'performance'
-* Turbo is enabled, CPU frequency will fluctuate
-
-Recommendations
-* Use 'pyperf system tune' before benchmarking. See https://github.com/psf/pyperf
-
 |               ns/op |                op/s |    err% |          ins/op |          cyc/op |    IPC |         bra/op |   miss% |     total | simphotons choices
 |--------------------:|--------------------:|--------:|----------------:|----------------:|-------:|---------------:|--------:|----------:|:-------------------
 |            5,862.59 |          170,573.19 |    0.6% |       20,266.01 |       12,269.17 |  1.652 |       7,240.01 |    0.2% |     10.80 | `sum_map_10000`
