@@ -12,6 +12,7 @@ format:
       margin-width: 350px
 reference-location: margin
 citation-location: margin
+cap-location: margin
 
 execute: 
   echo: false
@@ -42,3 +43,55 @@ Possible contenders for a redesign include:
 
 #. a `struct` containing two `std::vector<int>` instances. I call this `sp2`.
 #. `std::unordered_map<int, int>`. I call this `hashmap`.
+#. a `std::vector<record>` where `record` is a `struct` containing two `int`s.
+   I call this `sp_pairs`.
+
+`sp2` is designed to optimize the performance of iterating over all `nphots` values.
+`sp_pairs` is designed to optimize the performance of iterating simultaneously through both `ticks` and `nphots`.
+`hashmap` is optimized for doing insertions and deletions and direct lookups by `ticks` value.
+Note that the data product is created only once, so that optimization for insertions and deletions is not relevant.
+If lookup by `ticks` values is needed, the `vectors` in `sp2` and `sp_pairs` can be sorted on `ticks` to allow a binary-search to be used.
+
+# Performance measurements
+
+I made performance measurements using the [nanobench](https://nanobench.ankerl.com) library.
+In each case, collections of a varying range of sizes were used.
+Note that the typical size of a `SimPhotonsLite` object is about 3000 key/value pairs.
+
+I created benchmarks for a variety of different usage patterns, described below.
+In each case I ran the same code on a Linux box (Intel Skylake-avx512) and a MacBook Pro (Apple M2 Max chip).
+
+## Iteraing through `nphots` values, ignoring `ticks`
+
+In this test the iteration looks only at the `nphots` values, summing them.
+
+```{r}
+d <- read.so::read_md("gcc-12-skylake.txt") |>
+  adjust_raw_df()
+d2 <- read.so::read_md("apple-clang-m2.txt") |>
+  adjust_raw_df()
+d <- bind_rows(skylake=d, m2=d2, .id="chip")
+rm(d2)
+d <- mutate(d, chip = factor(chip, levels=c("skylake", "m2")))
+```
+
+```{r}
+#| label: fig-summing-values
+#| fig-cap: Time taken to iterate through the structure, summing all `nphots` values. The vertical dotted line shows the typical size of the collection (3000).
+ggplot(d, aes(x=size, y=`ns/op`, color=structure)) +
+  geom_point() +
+  geom_line(alpha=0.5) +
+  labs(x="size (number of measurements)", y="time (ns)") +
+  scale_x_log10() +
+  scale_y_log10() +
+  facet_wrap(vars(chip)) +
+  geom_vline(xintercept = 3000, linetype="dotted")
+```
+
+The clear winner is the `sp2` data structure, which is uniformly fastest for all sizes up to 10,000.
+
+## Iterating through both `ticks` and `nphots`
+
+In this test, the iteration requires looking at both the `ticks` and the `nphots` data.
+The task we do is to find the tick with the largest value of `nphots` by a scan through all the data.
+

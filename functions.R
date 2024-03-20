@@ -141,3 +141,20 @@ read_dataframes <- function()
                   do = orig - acosd) 
     list(channels=channels, measurements=measurements, chs=chs)
 }
+
+#' Adjust the raw dataframe read from nanobench to a helpful format
+#'
+#' @param d the dataframe, as read by read.so::read_md
+#'
+#' @return a tibble
+#' @export
+#'
+adjust_raw_df <- function(d) {
+  mutate(d, spc = str_remove_all(`simphotons choices`, "`"), .keep="unused") |>
+    separate_wider_delim(cols=spc,
+                         delim="_",
+                         names=c("fcn", "structure", "size")) |>
+    mutate(structure=as_factor(structure),
+           size=as.integer(size)) |>
+    select(-c("fcn"))
+}
