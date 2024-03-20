@@ -28,7 +28,7 @@ FetchContent_Declare(
   GIT_SHALLOW TRUE)
 FetchContent_MakeAvailable(fmt)
 
-add_library(sum_functions SHARED sum_functions.cc)
+add_library(operations SHARED operations.cc)
 add_library(fill_functions SHARED fill_functions.cc)
 
 add_executable(fast_acos_t fast_acos_t.cc ieee_acos.cc)
@@ -41,5 +41,5 @@ add_executable(omega_t omega_t.cc)
 target_link_libraries(omega_t PRIVATE nanobench)
 
 add_executable(simphotons_choices simphotons_choices.cc)
-target_link_libraries(simphotons_choices PRIVATE sum_functions fill_functions nanobench fmt)
+target_link_libraries(simphotons_choices PRIVATE operations fill_functions nanobench fmt)
 
