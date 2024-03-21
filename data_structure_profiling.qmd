@@ -32,11 +32,12 @@ knitr::opts_chunk$set(
   )
 ```
 
+
 # Purpose
 
 This document describes the microbenchmarking work I have done to help choose between possible data structures to use for the `SimPhotonsLite` class.
 
-# Contenders for the design.
+# Contenders for the design
 
 The original design for `SimPhotonsLite` is a `std::map<int, int>`.
 Possible contenders for a redesign include:
@@ -60,17 +61,23 @@ Note that the typical size of a `SimPhotonsLite` object is about 3000 key/value 
 
 I created benchmarks for a variety of different usage patterns, described below.
 In each case I ran the same code on a Linux box (Intel Skylake-avx512) and a MacBook Pro (Apple M2 Max chip).
+On the Skylake machine, the code was compiled with GCC 12.3.0.
+On the M2 machine, the code was compiled with Apple Clang 15.0.
+I have used two different compilers, standard library implementations, and types of hardware to illustrate what patterns are common across implementations, and where implementation differences cause performance divergences.
 
 ## Iteraing through `nphots` values, ignoring `ticks`
 
 In this test the iteration looks only at the `nphots` values, summing them.
 
 ```{r}
-d <- read.so::read_md("gcc-12-skylake.txt") |>
+d <-
+  read_benchmark("gcc-12-skylake.txt") |>
   adjust_raw_df()
-d2 <- read.so::read_md("apple-clang-m2.txt") |>
+d2 <-
+  read_benchmark("apple-clang-m2.txt") |>
   adjust_raw_df()
-d <- bind_rows(skylake=d, m2=d2, .id="chip")
+d <-
+  bind_rows(skylake=d, m2=d2, .id="chip")
 rm(d2)
 d <- mutate(d, chip = factor(chip, levels=c("skylake", "m2")))
 ```
@@ -78,7 +85,8 @@ d <- mutate(d, chip = factor(chip, levels=c("skylake", "m2")))
 ```{r}
 #| label: fig-summing-values
 #| fig-cap: Time taken to iterate through the structure, summing all `nphots` values. The vertical dotted line shows the typical size of the collection (3000).
-ggplot(d, aes(x=size, y=`ns/op`, color=structure)) +
+filter(d, fcn == "sum") |>
+  ggplot(aes(x=size, y=time, color=structure, shape=structure)) +
   geom_point() +
   geom_line(alpha=0.5) +
   labs(x="size (number of measurements)", y="time (ns)") +
@@ -89,9 +97,28 @@ ggplot(d, aes(x=size, y=`ns/op`, color=structure)) +
 ```
 
 The clear winner is the `sp2` data structure, which is uniformly fastest for all sizes up to 10,000.
+The `std::map<int, int>` data structure is the slowest.
 
 ## Iterating through both `ticks` and `nphots`
 
 In this test, the iteration requires looking at both the `ticks` and the `nphots` data.
 The task we do is to find the tick with the largest value of `nphots` by a scan through all the data.
 
+
+```{r}
+#| label: fig-scanning-pairs
+#| fig-cap: Time taken to iterate through the structure, scanning all `nphots` to find the largest, and to record the `ticks` associated with that largest value. In this scan, `ticks` is only read when necessary. The vertical dotted line shows the typical size of the collection (3000)/
+filter(d, fcn == "scan") |>
+  ggplot(aes(x=size, y=time, color=structure, shape=structure)) +
+  geom_point() +
+  geom_line(alpha=0.5) +
+  labs(x="size (number of measurements)", y="time (ns)") +
+  scale_x_log10() +
+  scale_y_log10() +
+  facet_wrap(vars(chip)) +
+  geom_vline(xintercept = 3000, linetype="dotted")
+```
+
+This time the differences between the `sp2` and `pairs` structures are less dramatic.
+More importantly, at large sizes, `hashmap` structure performs best.
+The size at which the `hashmap` takes the lead over the `sp2` and `pairs` structures is different for the two different implementations.
