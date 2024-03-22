@@ -1,8 +1,13 @@
 cmake_minimum_required(VERSION 3.20.0)
-project(duneprofiling VERSION 0.0.0 LANGUAGES CXX)
+project(duneprofiling VERSION 0.1.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED On)
 set(CMAKE_CXX_EXTENSIONS Off)
+
+# If the build type is not set, we want a Releas build.
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Build type" FORCE)
+endif()
 
 #add_compile_options(-Wall -Wextra -Wpedantic -Ofast -march=native -mfma -funsafe-math-optimizations -ffinite-math-only -fno-signed-zeros -funroll-loops -fverbose-asm -mprefer-vector-width=128 -momit-leaf-frame-pointer)
 
@@ -41,5 +46,5 @@ add_executable(omega_t omega_t.cc)
 target_link_libraries(omega_t PRIVATE nanobench)
 
 add_executable(simphotons_choices simphotons_choices.cc)
-target_link_libraries(simphotons_choices PRIVATE operations fill_functions nanobench fmt)
+target_link_libraries(simphotons_choices PRIVATE operations operations fill_functions nanobench fmt)
 

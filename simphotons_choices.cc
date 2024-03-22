@@ -10,8 +10,8 @@
 #include "fmt/core.h"
 #include "nanobench.h"
 
+#include "data_structures.hh"
 #include "fill_functions.hh"
-#include "sp2.hh"
 #include "operations.hh"
 
 template <typename S>
@@ -45,36 +45,41 @@ main()
   b.title("simphotons choices")
     .performanceCounters(true)
     .minEpochIterations(150 * 1000);
-
   std::array<std::size_t, 7> NM = {
     10ULL, 30ULL, 100ULL, 300ULL, 1000ULL, 3000ULL, 10000ULL};
   std::ranges::reverse(NM);
 
   std::map<int, int> sp_orig;
-  sp2 sp_new;
+  soa_vector sp_new;
   std::unordered_map<int, int> hashmap;
-  sp_pairs pairs;
+  aos_vector pairs;
+  aos_deq pairs_deq;
 
   for (auto n : NM) {
     std::string suffix = std::to_string(n);
     sp_orig = std::map<int, int>();
-    sp_new = sp2();
+    sp_new = soa_vector();
     hashmap = std::unordered_map<int, int>();
+    pairs = aos_vector();
+    pairs_deq = aos_deq();
+
     fill(sp_orig, n);
     fill(sp_new, n);
     fill(hashmap, n);
     fill(pairs, n);
+    fill(pairs_deq, n);
 
     run_sum(&b, sp_orig, n, fmt::format("sum_map_{}", suffix));
     run_sum(&b, sp_new, n, fmt::format("sum_sp2_{}", suffix));
     run_sum(&b, hashmap, n, fmt::format("sum_hashmap_{}", suffix));
     run_sum(&b, pairs, n, fmt::format("sum_pairs_{}", suffix));
+    run_sum(&b, pairs_deq, n, fmt::format("sum_pairs_deq_{}", suffix));
   }
 
   for (auto n : NM) {
     std::string suffix = std::to_string(n);
     sp_orig = std::map<int, int>();
-    sp_new = sp2();
+    sp_new = soa_vector();
     hashmap = std::unordered_map<int, int>();
     fill(sp_orig, n);
     fill(sp_new, n);
