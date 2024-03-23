@@ -50,45 +50,93 @@ main()
   std::ranges::reverse(NM);
 
   std::map<int, int> sp_orig;
-  soa_vector sp_new;
   std::unordered_map<int, int> hashmap;
-  aos_vector pairs;
-  aos_deq pairs_deq;
+
+  aos_vector aos_v;
+  aos_deq aos_d;
+  aos_slist aos_l;
+
+  soa_vector soa_v;
+  soa_deq soa_d;
+  soa_slist soa_l;
 
   for (auto n : NM) {
     std::string suffix = std::to_string(n);
+
+    // Node-based types
     sp_orig = std::map<int, int>();
-    sp_new = soa_vector();
     hashmap = std::unordered_map<int, int>();
-    pairs = aos_vector();
-    pairs_deq = aos_deq();
+
+    // Record-oriented types
+    aos_v = aos_vector();
+    aos_d = aos_deq();
+    aos_l = aos_slist();
+
+    // Array-oriented types
+    soa_v = soa_vector();
+    soa_d = soa_deq();
+    soa_l = soa_slist();
 
     fill(sp_orig, n);
-    fill(sp_new, n);
     fill(hashmap, n);
-    fill(pairs, n);
-    fill(pairs_deq, n);
+
+    fill(aos_v, n);
+    fill(aos_d, n);
+    fill(aos_l, n);
+
+    fill(soa_v, n);
+    fill(soa_d, n);
+    fill(soa_l, n);
 
     run_sum(&b, sp_orig, n, fmt::format("sum_map_{}", suffix));
-    run_sum(&b, sp_new, n, fmt::format("sum_sp2_{}", suffix));
     run_sum(&b, hashmap, n, fmt::format("sum_hashmap_{}", suffix));
-    run_sum(&b, pairs, n, fmt::format("sum_pairs_{}", suffix));
-    run_sum(&b, pairs_deq, n, fmt::format("sum_pairs_deq_{}", suffix));
+
+    run_sum(&b, aos_v, n, fmt::format("sum_aosv_{}", suffix));
+    run_sum(&b, aos_d, n, fmt::format("sum_aosd_{}", suffix));
+    run_sum(&b, aos_l, n, fmt::format("sum_aosl_{}", suffix));
+
+    run_sum(&b, soa_v, n, fmt::format("sum_soav_{}", suffix));
+    run_sum(&b, soa_v, n, fmt::format("sum_soad_{}", suffix));
+    run_sum(&b, soa_v, n, fmt::format("sum_soal_{}", suffix));
   }
 
   for (auto n : NM) {
     std::string suffix = std::to_string(n);
+
+    // Node-based types
     sp_orig = std::map<int, int>();
-    sp_new = soa_vector();
     hashmap = std::unordered_map<int, int>();
+
+    // Record-oriented types
+    aos_v = aos_vector();
+    aos_d = aos_deq();
+    aos_l = aos_slist();
+
+    // Array-oriented types
+    soa_v = soa_vector();
+    soa_d = soa_deq();
+    soa_l = soa_slist();
+
     fill(sp_orig, n);
-    fill(sp_new, n);
     fill(hashmap, n);
-    fill(pairs, n);
+
+    fill(aos_v, n);
+    fill(aos_d, n);
+    fill(aos_l, n);
+
+    fill(soa_v, n);
+    fill(soa_d, n);
+    fill(soa_l, n);
 
     run_scan(&b, sp_orig, n, fmt::format("scan_map_{}", suffix));
-    run_scan(&b, sp_new, n, fmt::format("scan_sp2_{}", suffix));
     run_scan(&b, hashmap, n, fmt::format("scan_hashmap_{}", suffix));
-    run_scan(&b, pairs, n, fmt::format("scan_pairs_{}", suffix));
+
+    run_scan(&b, aos_v, n, fmt::format("scan_aosv_{}", suffix));
+    run_scan(&b, aos_d, n, fmt::format("scan_aosd_{}", suffix));
+    // run_scan(&b, aos_l, n, fmt::format("scan_aosl_{}", suffix));
+
+    // run_scan(&b, soa_v, n, fmt::format("scan_soav_{}", suffix));
+    // run_scan(&b, soa_v, n, fmt::format("scan_soad_{}", suffix));
+    // run_scan(&b, soa_v, n, fmt::format("scan_soal_{}", suffix
   }
 }

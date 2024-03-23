@@ -4,10 +4,11 @@
 ////////////////////////////////////////////
 // Part 1: Functions that look only at values, not keys.
 //
-// Iterate through all values in map; we don't look at the keys.
-template <typename MAP>
+// Iterate through all values in a record-based structure; this includes both
+// maps and AOS structures.
+template <typename RECORDBASED>
 int
-sum_aos(MAP const& m)
+sum_recordbased(RECORDBASED const& m)
 {
   int sum = 0;
   for (auto const& p : m) {
@@ -16,6 +17,37 @@ sum_aos(MAP const& m)
   return sum;
 }
 
+int
+sum(std::map<int, int> const& m)
+{
+  return sum_recordbased(m);
+}
+
+int
+sum(std::unordered_map<int, int> const& m)
+{
+  return sum_recordbased(m);
+}
+
+int
+sum(aos_vector const& s)
+{
+  return sum_recordbased(s);
+}
+
+int
+sum(aos_deq const& s)
+{
+  return sum_recordbased(s);
+}
+
+int
+sum(aos_slist const& s)
+{
+  return sum_recordbased(s);
+}
+
+// Iterate through all values in a SOA structure.
 template <typename SOA>
 int
 sum_soa(SOA const& s)
@@ -25,12 +57,6 @@ sum_soa(SOA const& s)
     sum += p;
   }
   return sum;
-}
-
-int
-sum(std::map<int, int> const& m)
-{
-  return sum_aos(m);
 }
 
 int
@@ -49,31 +75,6 @@ int
 sum(soa_slist const& s)
 {
   return sum_soa(s);
-}
-
-int
-sum(std::unordered_map<int, int> const& m)
-{
-  return sum_aos(m);
-}
-
-// Iterate through all the structs, looking only at the nphot values.
-int
-sum(aos_vector const& s)
-{
-  return sum_aos(s);
-}
-
-int
-sum(aos_deq const& s)
-{
-  return sum_aos(s);
-}
-
-int
-sum(aos_list const& s)
-{
-  return sum_aos(s);
 }
 
 ////////////////////////////////////////////

@@ -55,4 +55,4 @@ struct record {
 
 using aos_vector = std::vector<record>;
 using aos_deq = std::deque<record>;
-using aos_list = std::forward_list<record>;
+using aos_slist = std::forward_list<record>;

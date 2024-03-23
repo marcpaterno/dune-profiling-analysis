@@ -14,7 +14,7 @@ int sum(aos_vector const& s);
 int sum(soa_deq const& s);
 int sum(soa_slist const& s);
 int sum(aos_deq const& s);
-int sum(aos_list const& s);
+int sum(aos_slist const& s);
 
 // This is the type of the result returned by all the find_largest functions.
 struct result_t {
@@ -23,10 +23,12 @@ struct result_t {
 };
 
 result_t find_largest(std::map<int, int> const& m);
-result_t find_largest(soa_vector const& m);
 result_t find_largest(std::unordered_map<int, int> const& m);
+
 result_t find_largest(aos_vector const& m);
+result_t find_largest(aos_deq const& s);
+result_t find_largest(aos_slist const& s);
+
+result_t find_largest(soa_vector const& m);
 result_t find_largest(soa_deq const& s);
 result_t find_largest(soa_slist const& s);
-result_t find_largest(aos_deq const& s);
-result_t find_largest(aos_list const& s);
