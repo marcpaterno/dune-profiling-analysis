@@ -42,10 +42,11 @@ This document describes the microbenchmarking work I have done to help choose be
 The original design for `SimPhotonsLite` is a `std::map<int, int>`.
 Possible contenders for a redesign include:
 
-#. a `struct` containing two `std::vector<int>` instances. I call this `sp2`.
 #. `std::unordered_map<int, int>`. I call this `hashmap`.
-#. a `std::vector<record>` where `record` is a `struct` containing two `int`s.
-   I call this `sp_pairs`.
+#. A container of `record` objects, each containing a `tick` and an `nphots` value.
+   Possible choices for the container are `std::vector`, `std::deque` and `std::forward_list`.
+#. a `struct` containing two containers of `int` values.
+  The choices for the container are the same as above.
 
 `sp2` is designed to optimize the performance of iterating over all `nphots` values.
 `sp_pairs` is designed to optimize the performance of iterating simultaneously through both `ticks` and `nphots`.
@@ -79,12 +80,14 @@ d2 <-
 d <-
   bind_rows(skylake=d, m2=d2, .id="chip")
 rm(d2)
-d <- mutate(d, chip = factor(chip, levels=c("skylake", "m2")))
+d <-
+  mutate(d, chip = factor(chip, levels=c("skylake", "m2")))
 ```
 
 ```{r}
 #| label: fig-summing-values
 #| fig-cap: Time taken to iterate through the structure, summing all `nphots` values. The vertical dotted line shows the typical size of the collection (3000).
+#| fig-colum: page-right
 filter(d, fcn == "sum") |>
   ggplot(aes(x=size, y=time, color=structure, shape=structure)) +
   geom_point() +
@@ -92,6 +95,7 @@ filter(d, fcn == "sum") |>
   labs(x="size (number of measurements)", y="time (ns)") +
   scale_x_log10() +
   scale_y_log10() +
+  scale_shape_manual(values=1:nlevels(d$structure)) +
   facet_wrap(vars(chip)) +
   geom_vline(xintercept = 3000, linetype="dotted")
 ```
@@ -115,6 +119,7 @@ filter(d, fcn == "scan") |>
   labs(x="size (number of measurements)", y="time (ns)") +
   scale_x_log10() +
   scale_y_log10() +
+  scale_shape_manual(values=1:nlevels(d$structure)) +
   facet_wrap(vars(chip)) +
   geom_vline(xintercept = 3000, linetype="dotted")
 ```
