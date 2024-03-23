@@ -80,59 +80,84 @@ sum(soa_slist const& s)
 ////////////////////////////////////////////
 // Part 2: Functions that look at both values and keys.
 //
-
-// Iterate through all keys and values in map.
+// Iterate through all keys and values in a record-based structure; this
+// includes both maps and AOS structures.
+template <typename RECORDBASED>
 result_t
-find_largest(std::map<int, int> const& m)
+find_largest_recordbased(RECORDBASED const& m)
 {
   result_t result;
-  for (auto [k, v] : m) {
-    if (result.value < v) {
-      result.key = k;
-      result.value = v;
-    }
-  }
-  return result;
-}
-
-// Iterate through all keys and values in struct.
-result_t
-find_largest(soa_vector const& s)
-{
-  result_t result;
-  for (std::size_t i = 0; i != s.nphots.size(); ++i) {
-    if (result.value < s.nphots[i]) {
-      result.key = s.ticks[i];
-      result.value = s.nphots[i];
-    }
-  }
-  return result;
-}
-
-// Iterate through all keys and values in the hashmap.
-result_t
-find_largest(std::unordered_map<int, int> const& m)
-{
-  result_t result;
-  for (auto [k, v] : m) {
-    if (result.value < v) {
-      result.key = k;
-      result.value = v;
-    }
-  }
-  return result;
-}
-
-// Iterate through all the structs, looking at both keys and values.
-result_t
-find_largest(aos_vector const& s)
-{
-  result_t result;
-  for (auto const& p : s) {
+  for (auto const& p : m) {
     if (result.value < p.second) {
       result.key = p.first;
       result.value = p.second;
     }
   }
   return result;
+}
+
+result_t
+find_largest(std::map<int, int> const& m)
+{
+  return find_largest_recordbased(m);
+}
+
+result_t
+find_largest(std::unordered_map<int, int> const& m)
+{
+  return find_largest_recordbased(m);
+}
+
+result_t
+find_largest(aos_vector const& s)
+{
+  return find_largest_recordbased(s);
+}
+
+result_t
+find_largest(aos_deq const& s)
+{
+  return find_largest_recordbased(s);
+}
+
+result_t
+find_largest(aos_slist const& s)
+{
+  return find_largest_recordbased(s);
+}
+
+// Iterate through all keys and values in a SOA structure.
+template <typename SOA>
+result_t
+find_largest_soa(SOA const& s)
+{
+  result_t result;
+  auto i_ticks = s.ticks.cbegin();
+  auto i_nphots = s.nphots.cbegin();
+  auto nphots_end = s.nphots.cend();
+  for (; i_nphots != nphots_end; ++i_ticks, ++i_nphots) {
+    if (result.value < *i_nphots) {
+      result.key = *i_ticks;
+      result.value = *i_nphots;
+    }
+  }
+  return result;
+}
+
+result_t
+find_largest(soa_vector const& s)
+{
+  return find_largest_soa(s);
+}
+
+result_t
+find_largest(soa_deq const& s)
+{
+  return find_largest_soa(s);
+}
+
+result_t
+find_largest(soa_slist const& s)
+{
+  return find_largest_soa(s);
 }

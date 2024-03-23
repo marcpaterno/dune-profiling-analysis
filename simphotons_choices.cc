@@ -133,10 +133,10 @@ main()
 
     run_scan(&b, aos_v, n, fmt::format("scan_aosv_{}", suffix));
     run_scan(&b, aos_d, n, fmt::format("scan_aosd_{}", suffix));
-    // run_scan(&b, aos_l, n, fmt::format("scan_aosl_{}", suffix));
+    run_scan(&b, aos_l, n, fmt::format("scan_aosl_{}", suffix));
 
-    // run_scan(&b, soa_v, n, fmt::format("scan_soav_{}", suffix));
-    // run_scan(&b, soa_v, n, fmt::format("scan_soad_{}", suffix));
-    // run_scan(&b, soa_v, n, fmt::format("scan_soal_{}", suffix
+    run_scan(&b, soa_v, n, fmt::format("scan_soav_{}", suffix));
+    run_scan(&b, soa_v, n, fmt::format("scan_soad_{}", suffix));
+    run_scan(&b, soa_v, n, fmt::format("scan_soal_{}", suffix));
   }
 }
