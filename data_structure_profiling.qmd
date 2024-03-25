@@ -1,5 +1,6 @@
 ---
 title: "Data Structure Profiling"
+subtitle: "version 1"
 author: "Marc Paterno"
 date: last-modified
 format:
@@ -7,12 +8,13 @@ format:
     css: custom.css
     toc: true
     code-overflow: wrap
-    theme: tufte
-    grid:
-      margin-width: 350px
-reference-location: margin
-citation-location: margin
-cap-location: margin
+    reference-location: margin
+    citation-location: margin
+    cap-location: margin
+  typst:
+    fontsize: "9pt"
+    papersize: "us-letter"
+    mainfont: Georgia
 
 execute: 
   echo: false
@@ -43,16 +45,20 @@ The original design for `SimPhotonsLite` is a `std::map<int, int>`.
 Possible contenders for a redesign include:
 
 #. `std::unordered_map<int, int>`. I call this `hashmap`.
-#. A container of `record` objects, each containing a `tick` and an `nphots` value.
+#. A container of `record` objects, each record containing a `tick` and an `nphots` value.
    Possible choices for the container are `std::vector`, `std::deque` and `std::forward_list`.
+   I call these *array-of-struct* data structures.
+   In the analysis below, they are `aosv`, `aosd` and `aosl`.
 #. a `struct` containing two containers of `int` values.
   The choices for the container are the same as above.
+  I call these *struct-of-array* data structures.
+  In the analysis below, they are `soav`, `soad` and `soal`.
 
-`sp2` is designed to optimize the performance of iterating over all `nphots` values.
-`sp_pairs` is designed to optimize the performance of iterating simultaneously through both `ticks` and `nphots`.
+Generally, the *struct-of-array* data structures are designed to optimize the performance of iterating over all `nphots` values,
+and the *array-of-struct* data structures are designed to optimize the performance of iterating simultaneously through both `ticks` and `nphots`.
 `hashmap` is optimized for doing insertions and deletions and direct lookups by `ticks` value.
 Note that the data product is created only once, so that optimization for insertions and deletions is not relevant.
-If lookup by `ticks` values is needed, the `vectors` in `sp2` and `sp_pairs` can be sorted on `ticks` to allow a binary-search to be used.
+If lookup by `ticks` values is needed, the arrays in the SOA and AOS implementations could be sorted, and an interface providing a binary search could be provided.
 
 # Performance measurements
 
@@ -66,7 +72,7 @@ On the Skylake machine, the code was compiled with GCC 12.3.0.
 On the M2 machine, the code was compiled with Apple Clang 15.0.
 I have used two different compilers, standard library implementations, and types of hardware to illustrate what patterns are common across implementations, and where implementation differences cause performance divergences.
 
-## Iteraing through `nphots` values, ignoring `ticks`
+## Iterating through `nphots` values, ignoring `ticks`
 
 In this test the iteration looks only at the `nphots` values, summing them.
 
@@ -82,12 +88,13 @@ d <-
 rm(d2)
 d <-
   mutate(d, chip = factor(chip, levels=c("skylake", "m2")))
+d <- filter(d, size >= 100)
 ```
 
 ```{r}
 #| label: fig-summing-values
 #| fig-cap: Time taken to iterate through the structure, summing all `nphots` values. The vertical dotted line shows the typical size of the collection (3000).
-#| fig-colum: page-right
+#| fig-width: 8
 filter(d, fcn == "sum") |>
   ggplot(aes(x=size, y=time, color=structure, shape=structure)) +
   geom_point() +
@@ -95,13 +102,15 @@ filter(d, fcn == "sum") |>
   labs(x="size (number of measurements)", y="time (ns)") +
   scale_x_log10() +
   scale_y_log10() +
-  scale_shape_manual(values=1:nlevels(d$structure)) +
+  scale_shape_manual(values=(d$structure)) +
   facet_wrap(vars(chip)) +
   geom_vline(xintercept = 3000, linetype="dotted")
 ```
 
-The clear winner is the `sp2` data structure, which is uniformly fastest for all sizes up to 10,000.
-The `std::map<int, int>` data structure is the slowest.
+The winners are the SOA data structures, which have similar performance.
+On the Skylake build, the AOS `vector` also achieves excellent performance; this is not true on the M2 build.
+For sufficiently large collections, the `hashmap` implementation becomes fastest.
+The `std::map<int, int>` data structure is the slowest over most of the range.
 
 ## Iterating through both `ticks` and `nphots`
 
@@ -111,7 +120,8 @@ The task we do is to find the tick with the largest value of `nphots` by a scan 
 
 ```{r}
 #| label: fig-scanning-pairs
-#| fig-cap: Time taken to iterate through the structure, scanning all `nphots` to find the largest, and to record the `ticks` associated with that largest value. In this scan, `ticks` is only read when necessary. The vertical dotted line shows the typical size of the collection (3000)/
+#| fig-cap: Time taken to iterate through the structure, scanning all `nphots` to find the largest, and to record the `ticks` associated with that largest value. In  this scan, `ticks` is only read when necessary. The vertical dotted line shows the typical size of the collection (3000).
+#| fig-width: 8
 filter(d, fcn == "scan") |>
   ggplot(aes(x=size, y=time, color=structure, shape=structure)) +
   geom_point() +
@@ -124,6 +134,38 @@ filter(d, fcn == "scan") |>
   geom_vline(xintercept = 3000, linetype="dotted")
 ```
 
-This time the differences between the `sp2` and `pairs` structures are less dramatic.
-More importantly, at large sizes, `hashmap` structure performs best.
-The size at which the `hashmap` takes the lead over the `sp2` and `pairs` structures is different for the two different implementations.
+This time the differences between the SOA and AOS structures are less dramatic, with the SOA structures doing better. 
+Again, at large sizes, `hashmap` structure performs best.
+
+## Tabular results
+
+If we concentrate only on the size of 3000, we obtain the rankings below.
+
+```{r}
+#| label: tbl-skylake-sums
+#| tbl-cap: Running times for `sums` function, Skylake results only.
+filter(d, size==3000, fcn=="sum", chip=="skylake") |>
+  select(structure, time) |>
+  arrange(time) |>
+  knitr::kable()
+```
+
+```{r}
+#| label: tbl-skylake-scans
+#| tbl-cap: Running times for `scan` function, Skylake results only.
+filter(d, size==3000, fcn=="scan", chip=="skylake") |>
+  select(structure, time) |>
+  arrange(time) |>
+  knitr::kable()
+```
+
+# Conclusions
+
+For the case if iterating only through the values (not looking at the keys), the *struct-of-array* choices, and the *array-of-struct* for an array type of `vector` are all good.
+For sizes above about 10,000 elements, the *hashmap* is also good.
+
+For the case of iterating through both keys and values, the *hashmap* is the best, followed by the *array-of-struct* and *struct-of-array*, both using `vector`.
+
+The size of the collections in question is clearly of great importance.
+In the same of 10 events I have used in my work thus far, the range of sizes was from 1 to 10 thousand measurements.
+If the sizes for a full FD sample are significantly larger, then those larger events will dominate the speed.
