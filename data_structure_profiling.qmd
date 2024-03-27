@@ -1,6 +1,6 @@
 ---
 title: "Data Structure Profiling"
-subtitle: "version 1"
+subtitle: "version 2"
 author: "Marc Paterno"
 date: last-modified
 format:
