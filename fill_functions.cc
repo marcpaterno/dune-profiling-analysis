@@ -4,19 +4,23 @@
 #include <utility>
 #include <vector>
 
-// Make the vectors of random numbers used to fill the various data structures.
+// Make the vectors of numbers used to fill the various data structures.
+// We use random numbers for the number of photons, and consecutive integers
+// for the ticks values. This is to avoid map and hashmap key collisions.
 std::pair<std::vector<int>, std::vector<int>>
 make_random_vectors(std::size_t n_measurements, unsigned long long seed)
 {
   std::minstd_rand0 engine(seed);
-  int MAXPHOTS = 1000;
-  std::uniform_int_distribution<int> dist{0, MAXPHOTS};
+  int MAXPHOT = 10000;
+  std::uniform_int_distribution<int> dist{0, MAXPHOT};
   auto gen = [&dist, &engine]() { return dist(engine); };
 
   std::vector<int> ticks(n_measurements);
   std::vector<int> nphots(n_measurements);
 
-  std::generate(begin(ticks), end(ticks), gen);
+  for (std::size_t i = 0; i != n_measurements; ++i) {
+    ticks[i] = i;
+  }
   std::generate(begin(nphots), end(nphots), gen);
   return {ticks, nphots};
 }
@@ -50,14 +54,13 @@ template <typename AOS>
 void
 fill_aos(AOS& m, std::size_t n_measurements)
 {
-  std::minstd_rand0 engine(123);
-  int MAXPHOTS = 1000;
-  std::uniform_int_distribution<int> dist{0, MAXPHOTS};
-  auto gen = [&dist, &engine]() { return dist(engine); };
+  auto [ticks, nphots] = make_random_vectors(n_measurements, 123);
   m.resize(n_measurements);
+  std::size_t i = 0;
   for (auto& record : m) {
-    record.first = gen();
-    record.second = gen();
+    record.first = ticks[i];
+    record.second = nphots[i];
+    ++i;
   }
 }
 
@@ -85,14 +88,9 @@ template <typename SOA>
 void
 fill_soa(SOA& m, std::size_t n_measurements)
 {
-  std::minstd_rand0 engine(123);
-  int MAXPHOTS = 1000;
-  std::uniform_int_distribution<int> dist{0, MAXPHOTS};
-  auto gen = [&dist, &engine]() { return dist(engine); };
-  m.ticks.resize(n_measurements);
-  m.nphots.resize(n_measurements);
-  std::generate(begin(m.ticks), end(m.ticks), gen);
-  std::generate(begin(m.nphots), end(m.nphots), gen);
+  auto [ticks, nphots] = make_random_vectors(n_measurements, 123);
+  m.ticks.assign(begin(ticks), end(ticks));
+  m.nphots.assign(begin(nphots), end(nphots));
 }
 
 void
