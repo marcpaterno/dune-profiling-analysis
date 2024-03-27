@@ -39,6 +39,11 @@ knitr::opts_chunk$set(
 
 This document describes the microbenchmarking work I have done to help choose between possible data structures to use for the `SimPhotonsLite` class.
 
+Note for version 2: this document corrects an error in the data collection present in version 1.
+In the earlier version, the apparently good performance of the `hashmap` solution was caused by an error in the code that filled the collections.
+The result of this error was that the number of measurements present in the `std::map<int,int>` and `hashmap` containers was smaller than expected (and never larger than 1000 elements).
+The conclusions reached are affected by this change.
+
 # Contenders for the design
 
 The original design for `SimPhotonsLite` is a `std::map<int, int>`.
@@ -109,14 +114,14 @@ filter(d, fcn == "sum") |>
 
 The winners are the SOA data structures, which have similar performance.
 On the Skylake build, the AOS `vector` also achieves excellent performance; this is not true on the M2 build.
-For sufficiently large collections, the `hashmap` implementation becomes fastest.
-The `std::map<int, int>` data structure is the slowest over most of the range.
+The `std::map<int, int>` data structure is the slowest over the entire range.
+The `hashmap` data structure is less bad than the `std::map<int,int>`, but is still bad.
+This is a bucket-based data structure that performs approximately as well as the `aosl`, which is a node-based data structure; both yield poor cache coherency.
 
 ## Iterating through both `ticks` and `nphots`
 
 In this test, the iteration requires looking at both the `ticks` and the `nphots` data.
 The task we do is to find the tick with the largest value of `nphots` by a scan through all the data.
-
 
 ```{r}
 #| label: fig-scanning-pairs
@@ -135,7 +140,7 @@ filter(d, fcn == "scan") |>
 ```
 
 This time the differences between the SOA and AOS structures are less dramatic, with the SOA structures doing better. 
-Again, at large sizes, `hashmap` structure performs best.
+Again, the `std::map<int,int>` is uniformly worst, and the node- and bucket-based stores of records are poor.
 
 ## Tabular results
 
@@ -162,10 +167,9 @@ filter(d, size==3000, fcn=="scan", chip=="skylake") |>
 # Conclusions
 
 For the case if iterating only through the values (not looking at the keys), the *struct-of-array* choices, and the *array-of-struct* for an array type of `vector` are all good.
-For sizes above about 10,000 elements, the *hashmap* is also good.
+The node- and the bucket-based solutions (`std::map<int,int>, `hashmap`, `aosl`) are not contenders for the solution.
 
-For the case of iterating through both keys and values, the *hashmap* is the best, followed by the *array-of-struct* and *struct-of-array*, both using `vector`.
+For the case of iterating through both keys and values the *array-of-struct* and *struct-of-array*, both using `vector`, are the two best.
 
-The size of the collections in question is clearly of great importance.
-In the same of 10 events I have used in my work thus far, the range of sizes was from 1 to 10 thousand measurements.
-If the sizes for a full FD sample are significantly larger, then those larger events will dominate the speed.
+The size of the collections in question does not change the decision of which is fastest.
+In the same of 10 events I have used in my work thus far, the range of sizes was from 1 to 10 thousand measurements; over this range the relative performances are fairly stable.
