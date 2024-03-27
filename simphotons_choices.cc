@@ -42,12 +42,12 @@ int
 main()
 {
   ankerl::nanobench::Bench b;
-  b.title("simphotons choices")
-    .performanceCounters(true)
-    .minEpochIterations(150 * 1000);
+  b.title("simphotons choices").performanceCounters(true);
+
   std::array<std::size_t, 7> NM = {
     10ULL, 30ULL, 100ULL, 300ULL, 1000ULL, 3000ULL, 10000ULL};
   std::ranges::reverse(NM);
+  unsigned long long ITERATIONS_NUMER = 1000 * 1000 * 1000;
 
   std::map<int, int> sp_orig;
   std::unordered_map<int, int> hashmap;
@@ -88,6 +88,9 @@ main()
     fill(soa_d, n);
     fill(soa_l, n);
 
+    unsigned long long n_iterations =
+      std::min(ITERATIONS_NUMER / n, 20 * 1000 * 1000ULL);
+    b.minEpochIterations(n_iterations);
     run_sum(&b, sp_orig, n, fmt::format("sum_map_{}", suffix));
     run_sum(&b, hashmap, n, fmt::format("sum_hashmap_{}", suffix));
 
@@ -127,6 +130,10 @@ main()
     fill(soa_v, n);
     fill(soa_d, n);
     fill(soa_l, n);
+
+    unsigned long long n_iterations =
+      std::min(ITERATIONS_NUMER / n, 20 * 1000 * 1000ULL);
+    b.minEpochIterations(n_iterations);
 
     run_scan(&b, sp_orig, n, fmt::format("scan_map_{}", suffix));
     run_scan(&b, hashmap, n, fmt::format("scan_hashmap_{}", suffix));
